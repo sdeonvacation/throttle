@@ -45,19 +45,11 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>4.13.2</junit.version>
-        <slf4j.version>2.0.9</slf4j.version>
-        <gpg.skip>false</gpg.skip>
-        <central.publish.skip>false</central.publish.skip>
+        <gpg.skip>true</gpg.skip>
+        <central.publish.skip>true</central.publish.skip>
     </properties>
 
     <dependencies>
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>junit</groupId>
@@ -94,26 +86,6 @@
                 </executions>
             </plugin>
 
-            <!-- GPG Signing -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.2.4</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals><goal>sign</goal></goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <skip>${gpg.skip}</skip>
-                </configuration>
-            </plugin>
-
-            <!-- Central Publishing Plugin is only in the release profile -->
-            <!-- This avoids automatic injection during development deployments -->
-
             <!-- Javadoc plugin for Maven Central -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -146,6 +118,20 @@
             </activation>
             <build>
                 <plugins>
+                    <!-- GPG Signing for releases -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.4</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                     <!-- Central Publishing Plugin for releases -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>

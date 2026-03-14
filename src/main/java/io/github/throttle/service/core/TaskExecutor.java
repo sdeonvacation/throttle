@@ -3,8 +3,8 @@ package io.github.throttle.service.core;
 import io.github.throttle.service.api.ChunkableTask;
 import io.github.throttle.service.base.TaskTerminatedException;
 import io.github.throttle.service.config.ThrottleConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Handles chunk-by-chunk execution with pause points.
  */
 public class TaskExecutor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TaskExecutor.class);
+    private static final Logger LOGGER = Logger.getLogger(TaskExecutor.class.getName());
     private static final int DEFAULT_POOL_SIZE = 2;
 
 
@@ -89,7 +89,7 @@ public class TaskExecutor {
             this.poolSize = DEFAULT_POOL_SIZE;
             this.workerExecutorService = createDefaultWorkerExecutorService();
             this.ownsWorkerExecutorService = true;
-            LOGGER.info("TaskHandler created default worker pool with size: {}", DEFAULT_POOL_SIZE);
+            LOGGER.info("TaskHandler created default worker pool with size: " + DEFAULT_POOL_SIZE);
         }
     }
 
@@ -101,7 +101,7 @@ public class TaskExecutor {
         for (int i = 0; i < poolSize; i++) {
             workerExecutorService.execute(new WorkerThread());
         }
-        LOGGER.info("Started {} worker threads for adaptive executor", poolSize);
+        LOGGER.info("Started " + poolSize + " worker threads for adaptive executor");
     }
 
     /**
@@ -194,7 +194,7 @@ public class TaskExecutor {
         if (executor instanceof ThreadPoolExecutor) {
             return ((ThreadPoolExecutor) executor).getCorePoolSize();
         }
-        LOGGER.debug("(getPoolSizeFromExecutorService) Cannot determine pool size from ExecutorService, using default: {}", DEFAULT_POOL_SIZE);
+        LOGGER.log(Level.FINE, "(getPoolSizeFromExecutorService) Cannot determine pool size from ExecutorService, using default: " + DEFAULT_POOL_SIZE);
         return DEFAULT_POOL_SIZE;
     }
 
@@ -221,7 +221,7 @@ public class TaskExecutor {
      * Package-private worker loop method that the WorkerThread will call.
      */
     void runExecutionLoop() {
-        LOGGER.info("(runWorkerLoop) TaskExecutor thread {} started", Thread.currentThread().getName());
+        LOGGER.info("(runWorkerLoop) TaskExecutor thread " + Thread.currentThread().getName() + " started");
 
         while (!shutdown.get()) {
             ChunkableTask<?> task = null;
@@ -263,11 +263,11 @@ public class TaskExecutor {
                 } else {
                     // Case 2: genuine shutdown interrupt — exit.
                     Thread.currentThread().interrupt();
-                    LOGGER.info("(runWorkerLoop) TaskExecutor thread {} interrupted", Thread.currentThread().getName());
+                    LOGGER.info("(runWorkerLoop) TaskExecutor thread " + Thread.currentThread().getName() + " interrupted");
                     break;
                 }
             } catch (Exception e) {
-                LOGGER.error("(runWorkerLoop) TaskExecutor thread error: {}", e.getMessage(), e);
+                LOGGER.log(Level.SEVERE, "(runWorkerLoop) TaskExecutor thread error: " + e.getMessage(), e);
                 if (task != null) {
                     // Determine root cause to detect task termination vs other failures
                     Throwable rootCause = e;
@@ -276,20 +276,18 @@ public class TaskExecutor {
                     }
 
                     if (rootCause instanceof TaskTerminatedException) {
-                        LOGGER.info("(runWorkerLoop) Task {} was terminated; termination was already recorded", task.getTaskId());
+                        LOGGER.info("(runWorkerLoop) Task " + task.getTaskId() + " was terminated; termination was already recorded");
                         // No further action - termination handling already performed in executeTask
                     } else {
                         try {
                             task.onError(e);
                         } catch (Exception ex) {
-                            LOGGER.error("(runWorkerLoop) Task {}: onError() itself threw: {}",
-                                task.getTaskId(), ex.getMessage());
+                            LOGGER.log(Level.SEVERE, "(runWorkerLoop) Task " + task.getTaskId() + ": onError() itself threw: " + ex.getMessage());
                         }
                         try {
                             task.failTask(e);
                         } catch (Exception ex) {
-                            LOGGER.error("(runWorkerLoop) Task {}: failTask() threw: {}",
-                                task.getTaskId(), ex.getMessage());
+                            LOGGER.log(Level.SEVERE, "(runWorkerLoop) Task " + task.getTaskId() + ": failTask() threw: " + ex.getMessage());
                         }
                         tasksFailed.incrementAndGet();
                     }
@@ -297,7 +295,7 @@ public class TaskExecutor {
             }
         }
 
-        LOGGER.info("(runWorkerLoop) TaskExecutor thread {} stopped", Thread.currentThread().getName());
+        LOGGER.info("(runWorkerLoop) TaskExecutor thread " + Thread.currentThread().getName() + " stopped");
     }
 
     /**
@@ -306,16 +304,13 @@ public class TaskExecutor {
      * Uses wait/notify from control plane for efficiency.
      */
     private void waitForResume() throws InterruptedException {
-        LOGGER.debug("(waitForResume) [{}] Waiting for system to resume",
-            Thread.currentThread().getName());
+        LOGGER.log(Level.FINE, "(waitForResume) [" + Thread.currentThread().getName() + "] Waiting for system to resume");
         executionCoordinator.awaitResume();
-        LOGGER.debug("(waitForResume) [{}] System resumed, will dequeue next task",
-            Thread.currentThread().getName());
+        LOGGER.log(Level.FINE, "(waitForResume) [" + Thread.currentThread().getName() + "] System resumed, will dequeue next task");
     }
 
     private void executeTask(ChunkableTask<?> task) {
-        LOGGER.info("(executeTask) [{}] Starting task: {} (priority: {})",
-            Thread.currentThread().getName(), task.getTaskId(), task.getPriority());
+        LOGGER.log(Level.INFO, "(executeTask) [" + Thread.currentThread().getName() + "] Starting task: " + task.getTaskId() + " (priority: " + task.getPriority() + ")");
 
         try {
             int chunksProcessed = 0;
@@ -325,8 +320,7 @@ public class TaskExecutor {
                 if (shutdown.get()) {
                     task.onCancel();
                     task.cancel(true);
-                    LOGGER.warn("(executeTask) [{}] Task {} cancelled due to shutdown",
-                        Thread.currentThread().getName(), task.getTaskId());
+                    LOGGER.warning("(executeTask) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " cancelled due to shutdown");
                     return;
                 }
 
@@ -341,9 +335,8 @@ public class TaskExecutor {
                 long chunkDuration = System.currentTimeMillis() - chunkStartTime;
                 chunksProcessed++;
 
-                LOGGER.debug("(executeTask) [{}] Task {} processed chunk {} ({} items) in {}ms",
-                    Thread.currentThread().getName(), task.getTaskId(),
-                    chunksProcessed, chunk.size(), chunkDuration);
+                LOGGER.log(Level.FINE, "(executeTask) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() +
+                    " processed chunk " + chunksProcessed + " (" + chunk.size() + " items) in " + chunkDuration + "ms");
 
                 // CHECKPOINT: Sample monitors and check if should pause (chunk-driven)
                 pauseIfAnyMonitorHot();
@@ -363,8 +356,7 @@ public class TaskExecutor {
                 task.onComplete();
             } catch (Exception ex) {
                 onCompleteError = ex;
-                LOGGER.error("(executeTask) [{}] Task {}: onComplete() threw: {}",
-                    Thread.currentThread().getName(), task.getTaskId(), ex.getMessage());
+                LOGGER.log(Level.SEVERE, "(executeTask) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + ": onComplete() threw: " + ex.getMessage());
             }
 
             if (onCompleteError != null) {
@@ -372,15 +364,13 @@ public class TaskExecutor {
                 try {
                     task.failTask(onCompleteError);
                 } catch (Exception ex) {
-                    LOGGER.error("(executeTask) Task {}: failTask() threw after onComplete failure: {}",
-                        task.getTaskId(), ex.getMessage());
+                    LOGGER.log(Level.SEVERE, "(executeTask) Task " + task.getTaskId() + ": failTask() threw after onComplete failure: " + ex.getMessage());
                 }
                 tasksFailed.incrementAndGet();
             } else {
                 task.completeTask();
                 tasksCompleted.incrementAndGet();
-                LOGGER.info("(executeTask) [{}] Task {} completed successfully ({} chunks processed)",
-                    Thread.currentThread().getName(), task.getTaskId(), chunksProcessed);
+                LOGGER.info("(executeTask) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " completed successfully (" + chunksProcessed + " chunks processed)");
             }
 
             // Check for starving tasks after completion
@@ -396,29 +386,24 @@ public class TaskExecutor {
             }
 
             if (rootCause instanceof TaskTerminatedException) {
-                LOGGER.info("(executeTask)[{}] Task {} termination handled: {}",
-                    Thread.currentThread().getName(), task.getTaskId(), rootCause.getMessage());
+                LOGGER.info("(executeTask)[" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " termination handled: " + rootCause.getMessage());
                 // No further action - killed count already updated
             } else {
-                LOGGER.error("(executeTask)[{}] Task {} failed: {}",
-                    Thread.currentThread().getName(), task.getTaskId(), e.getMessage(), e);
+                LOGGER.log(Level.SEVERE, "(executeTask)[" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " failed: " + e.getMessage(), e);
                 try {
                     task.onError(e);
                 } catch (Exception ex) {
-                    LOGGER.error("(executeTask) Task {}: onError() itself threw: {}",
-                        task.getTaskId(), ex.getMessage());
+                    LOGGER.log(Level.SEVERE, "(executeTask) Task " + task.getTaskId() + ": onError() itself threw: " + ex.getMessage());
                 }
                 try {
                     task.failTask(e);
                 } catch (Exception ex) {
-                    LOGGER.error("(executeTask) Task {}: failTask() threw: {}",
-                        task.getTaskId(), ex.getMessage());
+                    LOGGER.log(Level.SEVERE, "(executeTask) Task " + task.getTaskId() + ": failTask() threw: " + ex.getMessage());
                 }
                 tasksFailed.incrementAndGet();
             }
         } finally {
-            LOGGER.debug("(executeTask) [{}] Task {} execution completed",
-                Thread.currentThread().getName(), task.getTaskId());
+            LOGGER.log(Level.FINE, "(executeTask) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " execution completed");
         }
     }
 
@@ -442,8 +427,7 @@ public class TaskExecutor {
             long timeSinceLastSample = now - lastMonitorSampleTime;
 
             if (timeSinceLastSample < hotMonitoringIntervalMs) {
-                LOGGER.debug("(pauseIfAnyMonitorHot) [{}] Skipping redundant sample (last sample {}ms ago, debounce: {}ms)",
-                    Thread.currentThread().getName(), timeSinceLastSample, hotMonitoringIntervalMs);
+                LOGGER.log(Level.FINE, "(pauseIfAnyMonitorHot) [" + Thread.currentThread().getName() + "] Skipping redundant sample (last sample " + timeSinceLastSample + "ms ago, debounce: " + hotMonitoringIntervalMs + "ms)");
                 return;
             }
 
@@ -472,22 +456,19 @@ public class TaskExecutor {
 
             Instant pauseStart = Instant.now();
 
-            LOGGER.debug("(handlePauseCheckpoint) [{}] Task {} paused at checkpoint (pause count: {})",
-                Thread.currentThread().getName(), task.getTaskId(), task.getPauseCount());
+            LOGGER.log(Level.FINE, "(handlePauseCheckpoint) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " paused at checkpoint (pause count: " + task.getPauseCount() + ")");
 
             try {
                 // Wait for control plane to resume (efficient wait/notify, no busy-waiting)
                 executionCoordinator.awaitResume();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                LOGGER.warn("(handlePauseCheckpoint) [{}] Task {} interrupted during pause",
-                    Thread.currentThread().getName(), task.getTaskId());
+                LOGGER.warning("(handlePauseCheckpoint) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " interrupted during pause");
             }
 
             long pauseDuration = Duration.between(pauseStart, Instant.now()).toMillis();
             totalPauseDuration.addAndGet(pauseDuration);
-            LOGGER.debug("(handlePauseCheckpoint) [{}] Task {} resumed after {}ms pause",
-                Thread.currentThread().getName(), task.getTaskId(), pauseDuration);
+            LOGGER.log(Level.FINE, "(handlePauseCheckpoint) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " resumed after " + pauseDuration + "ms pause");
         }
     }
 
@@ -499,8 +480,7 @@ public class TaskExecutor {
         if (config.isTaskTerminationEnabled() &&
             task.getPauseCount() > config.getMaxPauseCount()) {
 
-            LOGGER.warn("(checkTerminationCondition) Terminating TASK: Task {} exceeded max pause count ({} > {})",
-                task.getTaskId(), task.getPauseCount(), config.getMaxPauseCount());
+            LOGGER.warning("(checkTerminationCondition) Terminating TASK: Task " + task.getTaskId() + " exceeded max pause count (" + task.getPauseCount() + " > " + config.getMaxPauseCount() + ")");
 
             // Create exception
             TaskTerminatedException exception =
@@ -518,7 +498,7 @@ public class TaskExecutor {
             // Complete future exceptionally
             task.failTask(exception);
 
-            LOGGER.info("(checkTerminationCondition) Task {} killed and added to killed tasks list", task.getTaskId());
+            LOGGER.info("(checkTerminationCondition) Task " + task.getTaskId() + " killed and added to killed tasks list");
 
             throw new RuntimeException(exception); // Exit execution
         }

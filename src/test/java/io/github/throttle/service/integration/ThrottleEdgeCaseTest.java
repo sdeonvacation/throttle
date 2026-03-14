@@ -12,8 +12,8 @@ import io.github.throttle.service.monitor.ResourceMonitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -41,7 +41,7 @@ import static org.junit.Assert.*;
  */
 public class ThrottleEdgeCaseTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThrottleEdgeCaseTest.class);
+    private static final Logger LOGGER = Logger.getLogger(ThrottleEdgeCaseTest.class.getName());
 
     private ThrottleService executor;
 
@@ -217,7 +217,7 @@ public class ThrottleEdgeCaseTest {
             fail("Should have thrown ExecutionException because onComplete threw");
         } catch (ExecutionException e) {
             assertNotNull("Should have a cause", e.getCause());
-            LOGGER.info("Expected exception from bad onComplete: {}", e.getCause().getMessage());
+            LOGGER.info("Expected exception from bad onComplete: " + e.getCause().getMessage());
         }
 
         // good task must still run and complete
@@ -310,7 +310,7 @@ public class ThrottleEdgeCaseTest {
                 queuedFutures.get(0).get(5, TimeUnit.SECONDS);
                 // If it completes without error that's also fine (was dequeued before discard)
             } catch (CancellationException | ExecutionException e) {
-                LOGGER.info("Oldest task was discarded as expected: {}", e.getClass().getSimpleName());
+                LOGGER.info("Oldest task was discarded as expected: " + e.getClass().getSimpleName());
             }
 
             // The newest task must eventually complete

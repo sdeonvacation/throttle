@@ -3,8 +3,8 @@ package io.github.throttle.service.core;
 import io.github.throttle.service.api.ChunkableTask;
 import io.github.throttle.service.base.Priority;
 import io.github.throttle.service.config.ThrottleConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Runs continuous monitoring in background and uses wait/notify for efficient pause/resume.
  */
 public class ExecutionCoordinator {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionCoordinator.class);
+    private static final Logger LOGGER = Logger.getLogger(ExecutionCoordinator.class.getName());
 
     private final ThrottleConfig config;
     private final PriorityBlockingQueue<ChunkableTask<?>> priorityQueue;
@@ -116,7 +116,7 @@ public class ExecutionCoordinator {
                     LOGGER.info("(ControlPlane) Resume monitoring loop interrupted");
                     break;
                 } catch (Exception e) {
-                    LOGGER.error("(ControlPlane) Error in resume monitoring loop: {}", e.getMessage(), e);
+                    LOGGER.log(Level.SEVERE, "(ControlPlane) Error in resume monitoring loop: " + e.getMessage(), e);
                 }
             }
 
@@ -153,7 +153,7 @@ public class ExecutionCoordinator {
             if (isPaused.compareAndSet(false, true)) {
                 pauseCount.incrementAndGet();
                 LOGGER.info("(executePause) PAUSING SYSTEM. Resource pressure detected. All tasks will pause at their next checkpoint.");
-                LOGGER.debug("(executePause) Total system pause count: {}", pauseCount.get());
+                LOGGER.log(Level.FINE, "(executePause) Total system pause count: " + pauseCount.get());
 
                 // Wake worker threads blocked in take() so they observe isPaused immediately
                 // rather than waiting for the next task to arrive.
@@ -174,7 +174,7 @@ public class ExecutionCoordinator {
         try {
             if (isPaused.compareAndSet(true, false)) {
                 LOGGER.info("(executeResume) RESUMING ALL TASKS. Resources recovered to normal levels");
-                LOGGER.debug("(executeResume) Total pause events so far: {}", pauseCount.get());
+                LOGGER.log(Level.FINE, "(executeResume) Total pause events so far: " + pauseCount.get());
 
                 // Notify ALL waiting threads to resume
                 resumeCondition.signalAll();
@@ -268,8 +268,7 @@ public class ExecutionCoordinator {
                         task.setCurrentPriority(boostedPriority);
                         task.setLastBoostTime(now);
 
-                        LOGGER.info("(checkStarvation) Boosted task {} from {} to {} (waited {} minutes)",
-                            task.getTaskId(), currentPriority, boostedPriority, waitTime.toMinutes());
+                        LOGGER.log(Level.INFO, "(checkStarvation) Boosted task " + task.getTaskId() + " from " + currentPriority + " to " + boostedPriority + " (waited " + waitTime.toMinutes() + " minutes)");
 
                         // Re-sort queue to reflect new priority
                         priorityQueue.remove(task);

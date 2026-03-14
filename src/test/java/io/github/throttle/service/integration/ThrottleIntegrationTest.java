@@ -12,8 +12,8 @@ import io.github.throttle.service.monitor.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ import static org.junit.Assert.*;
  */
 public class ThrottleIntegrationTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThrottleIntegrationTest.class);
+    private static final Logger LOGGER = Logger.getLogger(ThrottleIntegrationTest.class.getName());
 
     private ThrottleService executor;
     private List<ResourceMonitor> monitors;
@@ -149,7 +149,7 @@ public class ThrottleIntegrationTest {
 
         // Optionally verify HIGH started significantly before LOW (not just tie due to timing)
         long timeDiff = lowTask.getStartTime() - highTask.getStartTime();
-        LOGGER.info("Priority ordering verified: HIGH started {}ms before LOW", timeDiff);
+        LOGGER.info("Priority ordering verified: HIGH started " + timeDiff + "ms before LOW");
     }
 
     /**
@@ -561,7 +561,7 @@ public class ThrottleIntegrationTest {
                 assertTrue("Fast task should complete", fastTask.isCompleted());
             } catch (ExecutionException e) {
                 // Fast task might also have been paused 3 times and killed if unlucky
-                LOGGER.info("Fast task was also killed: {}", e.getCause().getMessage());
+                LOGGER.info("Fast task was also killed: " + e.getCause().getMessage());
             }
 
             // Slow task should definitely be killed
@@ -624,8 +624,7 @@ public class ThrottleIntegrationTest {
             // Strategy: Keep monitor HOT for longer to ensure checkpoint hit while HOT
             for (int i = 0; i < 3; i++) {
                 int currentPauseCount = task.getPauseCount();
-                LOGGER.info("Pause cycle {}: Current pauseCount={}, making monitor HOT",
-                    i + 1, currentPauseCount);
+                LOGGER.info("Pause cycle " + (i + 1) + ": Current pauseCount=" + currentPauseCount + ", making monitor HOT");
 
                 controllableMonitor.setState(MonitorState.HOT);
 
@@ -634,10 +633,10 @@ public class ThrottleIntegrationTest {
 
                 // Verify pause happened
                 int newPauseCount = task.getPauseCount();
-                LOGGER.info("Pause cycle {}: PauseCount increased to {}", i + 1, newPauseCount);
+                LOGGER.info("Pause cycle " + (i + 1) + ": PauseCount increased to " + newPauseCount);
 
                 // Resume
-                LOGGER.info("Pause cycle {}: Making monitor NORMAL", i + 1);
+                LOGGER.info("Pause cycle " + (i + 1) + ": Making monitor NORMAL");
                 controllableMonitor.setState(MonitorState.NORMAL);
 
                 // Wait for resume + next chunk to start
@@ -823,8 +822,7 @@ public class ThrottleIntegrationTest {
             assertTrue("Task should have received termination exception",
                 task.isTerminationExceptionReceived());
             assertFalse("Should not have been killed mid-chunk", task.wasKilledMidChunk());
-            LOGGER.info("Task was properly killed at checkpoint after processing {} complete chunks",
-                task.getChunksProcessed());
+            LOGGER.info("Task was properly killed at checkpoint after processing " + task.getChunksProcessed() + " complete chunks");
 
         } finally {
             testExecutor.shutdown();
@@ -904,7 +902,7 @@ public class ThrottleIntegrationTest {
                     }
                 } catch (TimeoutException e) {
                     // Still running - shouldn't happen
-                    LOGGER.warn("Task still running after kill period");
+                    LOGGER.warning("Task still running after kill period");
                 }
             }
 
@@ -929,8 +927,7 @@ public class ThrottleIntegrationTest {
                 }
             }
 
-            LOGGER.info("Task killing metrics validated: {} killed, {} completed out of 3 tasks",
-                killedCount, completedCount);
+            LOGGER.info("Task killing metrics validated: " + killedCount + " killed, " + completedCount + " completed out of 3 tasks");
 
         } finally {
             testExecutor.shutdown();
@@ -999,8 +996,7 @@ public class ThrottleIntegrationTest {
                 if (count > 0) {
                     tasksWithNonZeroCount++;
                 }
-                LOGGER.info("Task {} pause count: {}, processed: {}",
-                    task.getTaskId(), count, task.getProcessedCount());
+                LOGGER.info("Task " + task.getTaskId() + " pause count: " + count + ", processed: " + task.getProcessedCount());
             }
 
             // All tasks that started processing should have been counted
@@ -1021,9 +1017,8 @@ public class ThrottleIntegrationTest {
             // Final verification: All tasks that paused have fair counts
             LOGGER.info("Final pause counts:");
             for (SlowTask task : tasks) {
-                LOGGER.info("  {} -> pauseCount={}, processed={}/{}",
-                    task.getTaskId(), task.getPauseCount(),
-                    task.getProcessedCount(), task.getTotalItemCount());
+                LOGGER.info("  " + task.getTaskId() + " -> pauseCount=" + task.getPauseCount() +
+                    ", processed=" + task.getProcessedCount() + "/" + task.getTotalItemCount());
             }
 
         } finally {

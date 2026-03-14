@@ -10,7 +10,7 @@ module io.github.throttle {
     // io.github.throttle.service.core  (internal)
     // io.github.throttle.service.examples (internal)
 
-    requires org.slf4j;
+    requires java.logging;
     requires java.management;
 }
 

@@ -10,8 +10,8 @@ import io.github.throttle.service.monitor.ResourceMonitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ import static org.junit.Assert.*;
  */
 public class TaskExecutorTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TaskExecutorTest.class);
+    private static final Logger LOGGER = Logger.getLogger(TaskExecutorTest.class.getName());
 
     private TaskExecutor taskExecutor;
     private PriorityBlockingQueue<ChunkableTask<?>> queue;
@@ -372,7 +372,7 @@ public class TaskExecutorTest {
         int countB = taskB.getPauseCount();
         int countC = taskC.getPauseCount();
 
-        LOGGER.info("Pause counts: A={}, B={}, C={}", countA, countB, countC);
+        LOGGER.info("Pause counts: A=" + countA + ", B=" + countB + ", C=" + countC);
 
         // All tasks should have been penalized (count >= 1)
         assertTrue("TaskA should have pause count >= 1", countA >= 1);
@@ -392,7 +392,7 @@ public class TaskExecutorTest {
         int finalCountB = taskB.getPauseCount();
         int finalCountC = taskC.getPauseCount();
 
-        LOGGER.info("Final pause counts: A={}, B={}, C={}", finalCountA, finalCountB, finalCountC);
+        LOGGER.info("Final pause counts: A=" + finalCountA + ", B=" + finalCountB + ", C=" + finalCountC);
 
         // Allow some variance due to timing, but all should be >= 1
         assertTrue("All tasks should have been penalized at least once",
@@ -450,7 +450,7 @@ public class TaskExecutorTest {
         // Without synchronization: Each task has ~10 chunks, 4 tasks = ~40 samples
         // With synchronization + hotMonitoringInterval (default 100ms): 2000ms / 100ms = ~20 samples max
 
-        LOGGER.info("Total monitor samples during test: {}", totalSamples);
+        LOGGER.info("Total monitor samples during test: " + totalSamples);
 
         assertTrue("Should have sampled monitors", totalSamples > 0);
         assertTrue("Should have significantly fewer samples than without coordination (expected <25, got " + totalSamples + ")",
@@ -513,7 +513,7 @@ public class TaskExecutorTest {
         // With 500ms debounce: 2000ms / 500ms = ~4 samples max
         // Should be significantly fewer than 100ms debounce (~20 samples)
 
-        LOGGER.info("Total monitor samples with 500ms debounce: {}", totalSamples);
+        LOGGER.info("Total monitor samples with 500ms debounce: " + totalSamples);
 
         assertTrue("Should have sampled monitors", totalSamples > 0);
         assertTrue("Should have very few samples with 500ms debounce (expected <10, got " + totalSamples + ")",

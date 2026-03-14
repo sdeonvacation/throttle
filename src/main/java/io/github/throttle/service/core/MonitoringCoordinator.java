@@ -3,8 +3,8 @@ package io.github.throttle.service.core;
 import io.github.throttle.service.base.MonitorMetrics;
 import io.github.throttle.service.monitor.MonitorState;
 import io.github.throttle.service.monitor.ResourceMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.List;
  * Samples monitors and provides current state information.
  */
 public class MonitoringCoordinator {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MonitoringCoordinator.class);
+    private static final Logger LOGGER = Logger.getLogger(MonitoringCoordinator.class.getName());
 
     private final List<ResourceMonitor> monitors;
     private volatile boolean anyHot = false;
@@ -22,7 +22,7 @@ public class MonitoringCoordinator {
 
     public MonitoringCoordinator(List<ResourceMonitor> monitors) {
         this.monitors = new ArrayList<ResourceMonitor>(monitors);
-        LOGGER.info("MonitoringCoordinator initialized with {} monitors", monitors.size());
+        LOGGER.info("MonitoringCoordinator initialized with " + monitors.size() + " monitors");
     }
 
     /**
@@ -33,31 +33,29 @@ public class MonitoringCoordinator {
         boolean hot = false;
         boolean normal = true;
 
-        LOGGER.debug("(sampleMonitors) Monitoring Check Started with {} monitors", monitors);
+        LOGGER.log(Level.FINE, "(sampleMonitors) Monitoring Check Started with " + monitors + " monitors");
 
         for (ResourceMonitor monitor : monitors) {
             MonitorState state;
             try {
                 state = monitor.evaluate();
             } catch (Exception ex) {
-                LOGGER.error("(sampleMonitors) Monitor [{}] threw during evaluate() — treating as NORMAL (fail-open): {}",
-                    monitor.getId(), ex.getMessage());
+                LOGGER.log(Level.SEVERE, "(sampleMonitors) Monitor [" + monitor.getId() + "] threw during evaluate() — treating as NORMAL (fail-open): " + ex.getMessage());
                 continue; // skip this monitor; do not flip the hot/normal flags
             }
 
             MonitorMetrics metrics = monitor.getMetrics();
 
             // Log monitoring metrics for observability
-            LOGGER.debug("(sampleMonitors) Monitor [{}] - State: {}, Metrics: {}",
-                monitor.getId(), state, formatMetrics(metrics));
+            LOGGER.log(Level.FINE, "(sampleMonitors) Monitor [" + monitor.getId() + "] - State: " + state + ", Metrics: " + formatMetrics(metrics));
 
             if (state == MonitorState.HOT) {
                 hot = true;
                 normal = false;
-                LOGGER.warn("(sampleMonitors) Monitor {} is HOT - Resource pressure detected!", monitor.getId());
+                LOGGER.warning("(sampleMonitors) Monitor " + monitor.getId() + " is HOT - Resource pressure detected!");
             } else if (state != MonitorState.NORMAL) {
                 normal = false;
-                LOGGER.debug("(sampleMonitors) Monitor {} is in non-NORMAL state: {}", monitor.getId(), state);
+                LOGGER.log(Level.FINE, "(sampleMonitors) Monitor " + monitor.getId() + " is in non-NORMAL state: " + state);
             }
         }
 
@@ -74,7 +72,7 @@ public class MonitoringCoordinator {
             LOGGER.info("(sampleMonitors) System State Transition: HOT -> NORMAL");
         }
 
-        LOGGER.debug("(sampleMonitors) Monitoring Check Ended. AnyHot: {}, AllNormal: {}", hot, normal);
+        LOGGER.log(Level.FINE, "(sampleMonitors) Monitoring Check Ended. AnyHot: " + hot + ", AllNormal: " + normal);
     }
 
     /**

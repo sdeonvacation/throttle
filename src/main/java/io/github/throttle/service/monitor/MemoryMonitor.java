@@ -1,8 +1,8 @@
 package io.github.throttle.service.monitor;
 
 import io.github.throttle.service.base.MonitorMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -15,7 +15,7 @@ import java.time.Instant;
  * Monitors heap memory usage and triggers pause when hot, resume when cold.
  */
 public class MemoryMonitor implements ResourceMonitor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryMonitor.class);
+    private static final Logger LOGGER = Logger.getLogger(MemoryMonitor.class.getName());
     private static final String ID = "memory";
 
     private final MemoryMXBean memoryMxBean;
@@ -47,7 +47,7 @@ public class MemoryMonitor implements ResourceMonitor {
             case NORMAL:
                 if (memoryUsage > hotThreshold) {
                     breachStartTime = now;
-                    LOGGER.debug("Memory usage breaching above hot threshold: {}% (threshold: {}%)", String.format("%.2f", memoryUsage), hotThreshold);
+                    LOGGER.log(Level.FINE, "Memory usage breaching above hot threshold: {0}% (threshold: {1}%)", new Object[]{String.format("%.2f", memoryUsage), hotThreshold});
                     changeState(MonitorState.BREACHING, now);
                 }
                 break;
@@ -56,12 +56,12 @@ public class MemoryMonitor implements ResourceMonitor {
                 if (memoryUsage <= hotThreshold) {
                     // Dropped back to normal
                     breachStartTime = null;
-                    LOGGER.debug("Memory usage back to normal from BREACHING: {}% (threshold: {}%)", String.format("%.2f", memoryUsage), hotThreshold);
+                    LOGGER.log(Level.FINE, "Memory usage back to normal from BREACHING: {0}% (threshold: {1}%)", new Object[]{String.format("%.2f", memoryUsage), hotThreshold});
                     changeState(MonitorState.NORMAL, now);
                 } else if (breachStartTime != null &&
                           Duration.between(breachStartTime, now).compareTo(hysteresis) >= 0) {
                     // Sustained breach
-                    LOGGER.info("Memory usage hot with sustained breach: {}% (threshold: {}%)", String.format("%.2f", memoryUsage), hotThreshold);
+                    LOGGER.log(Level.INFO, "Memory usage hot with sustained breach: {0}% (threshold: {1}%)", new Object[]{String.format("%.2f", memoryUsage), hotThreshold});
                     changeState(MonitorState.HOT, now);
                     breachStartTime = null;
                 }
@@ -70,7 +70,7 @@ public class MemoryMonitor implements ResourceMonitor {
             case HOT:
                 if (memoryUsage < coldThreshold) {
                     breachStartTime = now;
-                    LOGGER.debug("Memory usage breaching below cold threshold: {}% (threshold: {}%)", String.format("%.2f", memoryUsage), coldThreshold);
+                    LOGGER.log(Level.FINE, "Memory usage breaching below cold threshold: {0}% (threshold: {1}%)", new Object[]{String.format("%.2f", memoryUsage), coldThreshold});
                     changeState(MonitorState.COOLING, now);
                 }
                 break;
@@ -79,12 +79,12 @@ public class MemoryMonitor implements ResourceMonitor {
                 if (memoryUsage >= coldThreshold) {
                     // Spiked back up
                     breachStartTime = null;
-                    LOGGER.debug("Memory usage spiked back above cold threshold during COOLING: {}% (threshold: {}%)", String.format("%.2f", memoryUsage), coldThreshold);
+                    LOGGER.log(Level.FINE, "Memory usage spiked back above cold threshold during COOLING: {0}% (threshold: {1}%)", new Object[]{String.format("%.2f", memoryUsage), coldThreshold});
                     changeState(MonitorState.HOT, now);
                 } else if (breachStartTime != null &&
                           Duration.between(breachStartTime, now).compareTo(hysteresis) >= 0) {
                     // Sustained cool
-                    LOGGER.info("Memory usage back to normal: {}% (threshold: {}%)", String.format("%.2f", memoryUsage), coldThreshold);
+                    LOGGER.log(Level.INFO, "Memory usage back to normal: {0}% (threshold: {1}%)", new Object[]{String.format("%.2f", memoryUsage), coldThreshold});
                     changeState(MonitorState.NORMAL, now);
                     breachStartTime = null;
                 }

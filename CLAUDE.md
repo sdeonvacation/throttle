@@ -222,16 +222,17 @@ The `core` package is internal and not exported.
 
 ## High-Level Design Document
 
-See `THROTTLE_SERVICE_HLD.md` for detailed architecture diagrams, state machines, and design rationale. Key sections:
+See `DESIGN.md` for detailed architecture diagrams, state machines, and design rationale. Key sections:
 - Section 2: Core concepts (chunkable tasks, thread-task binding, priority scheduling, resource-aware pause/resume)
 - Section 3: Architecture choices and trade-offs
 - Section 4: System behavior under normal and pressure scenarios
 - Section 6: Failure handling for all error paths
 - Section 7: Performance characteristics
+- Section 9: Use cases and practical applications
 
 ## Intelligent Features (Planned Enhancements)
 
-See `INTELLIGENT_FEATURES_PROPOSAL_V2.md` for planned enhancements that add intelligence on top of the flexible configuration system.
+See `INTELLIGENT_FEATURES_PROPOSAL.md` for planned enhancements that add intelligence on top of the flexible configuration system.
 
 **Design Philosophy**: All intelligent features must have **minimal overhead** - the executor itself should not consume significant system resources.
 
@@ -285,5 +286,13 @@ ThrottleService executor = factory.builder()
     .build();
 ```
 
-For detailed implementation plans and code examples, see `INTELLIGENT_FEATURES_PROPOSAL_V2.md`.
+For detailed implementation plans and code examples, see `INTELLIGENT_FEATURES_PROPOSAL.md`.
+
+## Additional Documentation
+
+- `simulator/docs/README.md` - Detailed simulator documentation with architecture and usage guide
+- `DESIGN.md` - Comprehensive high-level design document with diagrams and state machines
+- `INTELLIGENT_FEATURES_PROPOSAL.md` - Planned enhancements with overhead analysis
+- `README.md` - Project overview and quick start guide
+- `CONTRIBUTING.md` - Guidelines for contributing to the project
 

@@ -5,17 +5,17 @@ import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import io.github.throttle.service.base.MonitorMetrics;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * CPU resource monitor with hysteresis.
  * Monitors system CPU load and triggers pause when hot, resume when cold.
  */
 public class CpuMonitor implements ResourceMonitor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CpuMonitor.class);
+    private static final Logger LOGGER = Logger.getLogger(CpuMonitor.class.getName());
     private static final String ID = "cpu";
 
     private final OperatingSystemMXBean osMxBean;
@@ -52,8 +52,8 @@ public class CpuMonitor implements ResourceMonitor {
         double cpuLoad = getCpuLoad();
         Instant now = Instant.now();
 
-        LOGGER.debug("Evaluating CPU: load={}%, state={}, hotThreshold={}, coldThreshold={}",
-            String.format("%.2f", cpuLoad), state, hotThreshold, coldThreshold);
+        LOGGER.log(Level.FINE, "Evaluating CPU: load={0}%, state={1}, hotThreshold={2}, coldThreshold={3}",
+            new Object[]{String.format("%.2f", cpuLoad), state, hotThreshold, coldThreshold});
 
         switch (state) {
             case NORMAL:
@@ -78,7 +78,7 @@ public class CpuMonitor implements ResourceMonitor {
      */
     private void evaluateNormalState(double cpuLoad, Instant now) {
         if (cpuLoad > hotThreshold) {
-            LOGGER.debug("(evaludateNormalState) CPU BREACHING: {}% > {}%", String.format("%.2f", cpuLoad), hotThreshold);
+            LOGGER.log(Level.FINE, "(evaludateNormalState) CPU BREACHING: {0}% > {1}%", new Object[]{String.format("%.2f", cpuLoad), hotThreshold});
             transitionTo(MonitorState.BREACHING, now);
         }
     }
@@ -96,7 +96,7 @@ public class CpuMonitor implements ResourceMonitor {
 
         // Still breaching - check if sustained long enough
         if (isSustained(now)) {
-            LOGGER.info("(evaludateNormalState) CPU HOT: Sustained breach for {}ms", getDurationInState(now).toMillis());
+            LOGGER.info("(evaludateNormalState) CPU HOT: Sustained breach for " + getDurationInState(now).toMillis() + "ms");
             transitionTo(MonitorState.HOT, now);
         }
     }
@@ -106,10 +106,10 @@ public class CpuMonitor implements ResourceMonitor {
      */
     private void evaluateHotState(double cpuLoad, Instant now) {
         if (cpuLoad < coldThreshold) {
-            LOGGER.debug("(evaludateHotState) CPU COOLING: {}% < {}%", String.format("%.2f", cpuLoad), coldThreshold);
+            LOGGER.log(Level.FINE, "(evaludateHotState) CPU COOLING: {0}% < {1}%", new Object[]{String.format("%.2f", cpuLoad), coldThreshold});
             transitionTo(MonitorState.COOLING, now);
         } else {
-            LOGGER.debug("(evaludateHotState) CPU still HOT: {}% >= {}%", String.format("%.2f", cpuLoad), coldThreshold);
+            LOGGER.log(Level.FINE, "(evaludateHotState) CPU still HOT: {0}% >= {1}%", new Object[]{String.format("%.2f", cpuLoad), coldThreshold});
         }
     }
 
@@ -126,11 +126,11 @@ public class CpuMonitor implements ResourceMonitor {
 
         // Still cooling - check if sustained long enough
         if (isSustained(now)) {
-            LOGGER.info("(evaludateCoolingState) CPU NORMAL: Sustained cooling for {}ms", getDurationInState(now).toMillis());
+            LOGGER.info("(evaludateCoolingState) CPU NORMAL: Sustained cooling for " + getDurationInState(now).toMillis() + "ms");
             transitionTo(MonitorState.NORMAL, now);
         } else {
-            LOGGER.debug("CPU cooling: {}%, waiting {}/{}ms",
-                String.format("%.2f", cpuLoad), getDurationInState(now).toMillis(), hysteresis.toMillis());
+            LOGGER.log(Level.FINE, "CPU cooling: {0}%, waiting {1}/{2}ms",
+                new Object[]{String.format("%.2f", cpuLoad), getDurationInState(now).toMillis(), hysteresis.toMillis()});
         }
     }
 
@@ -173,7 +173,7 @@ public class CpuMonitor implements ResourceMonitor {
             smoothedCpuLoad = (rawCpuLoad * SMOOTHING_FACTOR) + (smoothedCpuLoad * (1 - SMOOTHING_FACTOR));
         }
 
-        LOGGER.debug("(getCpuLoad) Raw CPU: {}%, Smoothed CPU: {}%", String.format("%.2f", rawCpuLoad), String.format("%.2f", smoothedCpuLoad));
+        LOGGER.log(Level.FINE, "(getCpuLoad) Raw CPU: {0}%, Smoothed CPU: {1}%", new Object[]{String.format("%.2f", rawCpuLoad), String.format("%.2f", smoothedCpuLoad)});
 
         return smoothedCpuLoad;
     }
@@ -187,19 +187,19 @@ public class CpuMonitor implements ResourceMonitor {
                 if (result instanceof Double) {
                     double cpuLoad = (Double) result;
                     if (cpuLoad >= 0) {
-                        LOGGER.trace("(getRawCpuLoad) Using getProcessCpuLoad(): {}%", String.format("%.2f", cpuLoad * 100));
+                        LOGGER.log(Level.FINER, "(getRawCpuLoad) Using getProcessCpuLoad(): {0}%", String.format("%.2f", cpuLoad * 100));
                         return cpuLoad * 100.0;
                     }
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("getProcessCpuLoad() not available: {}", e.getMessage());
+            LOGGER.log(Level.SEVERE, "getProcessCpuLoad() not available: " + e.getMessage());
         }
 
         // Fallback: Return 0 to disable CPU-based pause/resume gracefully
         // Log warning once to avoid spamming logs
         if (!cpuMonitoringUnavailable) {
-            LOGGER.error("CPU load monitoring not available on this platform. CPU-based pause/resume will not function. " +
+            LOGGER.log(Level.SEVERE, "CPU load monitoring not available on this platform. CPU-based pause/resume will not function. " +
                        "This may occur on non-Sun/Oracle JVMs or restricted environments.");
             cpuMonitoringUnavailable = true;
         }

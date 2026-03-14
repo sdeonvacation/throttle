@@ -21,8 +21,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.throttle.service.monitor.ResourceMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Implementation of ThrottleService.
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ThrottleServiceImpl implements ThrottleService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThrottleServiceImpl.class);
+    private static final Logger LOGGER = Logger.getLogger(ThrottleServiceImpl.class.getName());
 
     private final PriorityBlockingQueue<ChunkableTask<?>> priorityQueue;
     private final int queueCapacity;
@@ -80,7 +80,7 @@ public class ThrottleServiceImpl implements ThrottleService {
         executionCoordinator.start();
         taskExecutor.start();
 
-        LOGGER.info("ThrottleService started with queue capacity: {}", queueCapacity);
+        LOGGER.info("ThrottleService started with queue capacity: " + queueCapacity);
     }
 
     @Override
@@ -111,7 +111,7 @@ public class ThrottleServiceImpl implements ThrottleService {
         // Permit acquired - task can be enqueued
         try {
             priorityQueue.offer(task);
-            LOGGER.info("(submit) Submitted task: {} with priority: {}", task.getTaskId(), task.getPriority());
+            LOGGER.log(Level.INFO, "(submit) Submitted task: " + task.getTaskId() + " with priority: " + task.getPriority());
             return task;
         } catch (Exception e) {
             // If offer() fails for any reason, release the permit and propagate the exception
@@ -177,9 +177,9 @@ public class ThrottleServiceImpl implements ThrottleService {
                 // Wait until a permit becomes available (released when a task is dequeued)
                 // This blocks the calling thread until space is available
                 try {
-                    LOGGER.debug("(handleQueueOverflow) Queue full, blocking until space available");
+                    LOGGER.log(Level.FINE, "(handleQueueOverflow) Queue full, blocking until space available");
                     queuePermits.acquire();
-                    LOGGER.debug("(handleQueueOverflow) Queue space available, proceeding with submit");
+                    LOGGER.log(Level.FINE, "(handleQueueOverflow) Queue space available, proceeding with submit");
                     return true; // Permit acquired
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -191,7 +191,7 @@ public class ThrottleServiceImpl implements ThrottleService {
                 // Remove oldest task, cancel it, and release its permit for reuse
                 ChunkableTask<?> oldest = priorityQueue.poll();
                 if (oldest != null) {
-                    LOGGER.warn("(handleQueueOverflow) Discarded oldest task: {}", oldest.getTaskId());
+                    LOGGER.warning("(handleQueueOverflow) Discarded oldest task: " + oldest.getTaskId());
                     oldest.cancel(false);
                     // The oldest task's permit needs to be released since it won't be
                     // dequeued by a worker. This permit will be reused by the new task.
@@ -200,7 +200,7 @@ public class ThrottleServiceImpl implements ThrottleService {
                     return queuePermits.tryAcquire();
                 } else {
                     // Queue is empty but no permit available - should not happen
-                    LOGGER.error("(handleQueueOverflow) DISCARD_OLDEST: Queue is empty but no permit available");
+                    LOGGER.log(Level.SEVERE, "(handleQueueOverflow) DISCARD_OLDEST: Queue is empty but no permit available");
                     return false;
                 }
 

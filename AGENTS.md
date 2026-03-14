@@ -168,4 +168,4 @@ cd simulator && ./run-tests.sh flapping       # Edge case scenario
 - Follow principle of least privilege
 - Keep dependencies updated
 
-When in doubt, follow the existing patterns in the codebase and refer to the detailed architecture documentation in THROTTLE_SERVICE_HLD.md.
+When in doubt, follow the existing patterns in the codebase and refer to the detailed architecture documentation in DESIGN.md.
