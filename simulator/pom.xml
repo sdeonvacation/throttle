@@ -12,8 +12,7 @@
     <description>Spring Boot application to test Throttle Service with real CPU/Memory load</description>
 
     <properties>
-        <spring-boot.version>2.7.18</spring-boot.version>
-        <logback.classic.version>1.2.11</logback.classic.version>
+        <spring-boot.version>3.5.3</spring-boot.version>
         <sonar.skip>true</sonar.skip>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -27,17 +26,6 @@
                 <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <!-- Force correct Tomcat version for Spring Boot 2.7.18 -->
-            <dependency>
-                <groupId>org.apache.tomcat.embed</groupId>
-                <artifactId>tomcat-embed-core</artifactId>
-                <version>9.0.83</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.tomcat.embed</groupId>
-                <artifactId>tomcat-embed-websocket</artifactId>
-                <version>9.0.83</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -70,17 +58,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.classic.version}</version>
         </dependency>
 
         <!-- Testing -->
