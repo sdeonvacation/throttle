@@ -16,6 +16,7 @@ Throttle is a sophisticated task execution framework that automatically adapts t
 
 - **Automatic Resource Monitoring**: Continuously monitors CPU and memory usage
 - **Adaptive Pause/Resume**: Automatically pauses task execution when resources are constrained and resumes when resources become available
+- **Chunked Task Execution**: Tasks are split into chunks that serve as checkpoints for pausing/resuming. This is essential because there is no way to natively pause a running task/thread and resume it at the same point without the support of the task itself - tasks must have checkpoints where they can be paused
 - **Priority-Based Scheduling**: Supports HIGH, MEDIUM, and LOW priority tasks
 - **Task Termination**: Configurable task killing for tasks that pause too frequently
 - **Configurable Thresholds**: Customizable hot/cold thresholds for CPU and memory

@@ -296,5 +296,3 @@ For detailed implementation plans and code examples, see `INTELLIGENT_FEATURES_P
 - `README.md` - Project overview and quick start guide
 - `CONTRIBUTING.md` - Guidelines for contributing to the project
 
-ps: Codex will review your code once you're done.
-
