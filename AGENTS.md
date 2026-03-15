@@ -169,3 +169,4 @@ cd simulator && ./run-tests.sh flapping       # Edge case scenario
 - Keep dependencies updated
 
 When in doubt, follow the existing patterns in the codebase and refer to the detailed architecture documentation in DESIGN.md.
+ps: Claude will review your code once you're done.
