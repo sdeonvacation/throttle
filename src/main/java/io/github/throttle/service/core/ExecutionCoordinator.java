@@ -30,8 +30,8 @@ public class ExecutionCoordinator {
     private final ThrottleConfig config;
     private final PriorityBlockingQueue<ChunkableTask<?>> priorityQueue;
     private final MonitoringCoordinator monitoringCoordinator;
-    private final ExecutorService controlPlaneExecutorService;
-    private final boolean ownsControlPlaneExecutorService;
+    private final ExecutorService monitoringThreadPool;
+    private final boolean ownsMonitoringThreadPool;
 
     private final AtomicBoolean isPaused = new AtomicBoolean(false);
     private final AtomicLong pauseCount = new AtomicLong(0);
@@ -49,19 +49,19 @@ public class ExecutionCoordinator {
     public ExecutionCoordinator(ThrottleConfig config,
                                 PriorityBlockingQueue<ChunkableTask<?>> priorityQueue,
                                 MonitoringCoordinator monitoringCoordinator,
-                                ExecutorService controlPlaneExecutorService) {
+                                ExecutorService monitoringThreadPool) {
         this.config = config;
         this.priorityQueue = priorityQueue;
         this.monitoringCoordinator = monitoringCoordinator;
 
         // Use provided pool or create default
-        if (controlPlaneExecutorService != null) {
-            this.controlPlaneExecutorService = controlPlaneExecutorService;
-            this.ownsControlPlaneExecutorService = false;
+        if (monitoringThreadPool != null) {
+            this.monitoringThreadPool = monitoringThreadPool;
+            this.ownsMonitoringThreadPool = false;
             LOGGER.info("ExecutionCoordinator using client-provided control plane pool");
         } else {
-            this.controlPlaneExecutorService = createDefaultControlPlaneExecutorService();
-            this.ownsControlPlaneExecutorService = true;
+            this.monitoringThreadPool = createDefaultControlPlaneExecutorService();
+            this.ownsMonitoringThreadPool = true;
             LOGGER.info("ExecutionCoordinator created default control plane pool");
         }
     }
@@ -81,22 +81,31 @@ public class ExecutionCoordinator {
      * Control plane only monitors for resume while system is paused.
      */
     public void start() {
-        controlPlaneExecutorService.submit(new ControlPlaneResumeMonitoringLoop());
+        monitoringThreadPool.submit(new ControlPlaneResumeMonitoringLoop());
         LOGGER.info("ExecutionCoordinator started - control plane will monitor for resume while paused");
     }
 
     /**
-     * Control plane monitoring loop for RESUME detection only.
-     * Only runs while paused to detect cooldown. Pause detection is chunk-driven.
+     * Control plane monitoring loop for RESUME detection and anti-starvation checks.
+     * Detects cooldown while paused. Also runs periodic anti-starvation checks.
      */
     private class ControlPlaneResumeMonitoringLoop implements Runnable {
         @Override
         public void run() {
             LOGGER.info("(ControlPlane) Resume monitoring loop started");
             long coldMonitoringIntervalMs = config.getColdMonitoringInterval().toMillis();
+            long starvationCheckIntervalMs = config.getStarvationCheckInterval().toMillis();
+            long lastStarvationCheck = System.currentTimeMillis();
 
             while (!isShutdown.get() && !Thread.interrupted()) {
                 try {
+                    // Check if starvation check interval elapsed
+                    long now = System.currentTimeMillis();
+                    if (now - lastStarvationCheck >= starvationCheckIntervalMs) {
+                        checkStarvation();
+                        lastStarvationCheck = now;
+                    }
+
                     if (isPaused.get()) {
                         // Only sample monitors when paused (looking for cooldown)
                         monitoringCoordinator.sampleMonitors();
@@ -294,23 +303,23 @@ public class ExecutionCoordinator {
                 pauseLock.unlock();
             }
 
-            if (ownsControlPlaneExecutorService) {
-                controlPlaneExecutorService.shutdown();
+            if (ownsMonitoringThreadPool) {
+                monitoringThreadPool.shutdown();
             }
         }
     }
 
     public void shutdownNow() {
         shutdown();
-        if (ownsControlPlaneExecutorService) {
-            controlPlaneExecutorService.shutdownNow();
+        if (ownsMonitoringThreadPool) {
+            monitoringThreadPool.shutdownNow();
         }
     }
 
     private ExecutorService createDefaultControlPlaneExecutorService() {
         return Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "Throttle-Control-Plane");
-            t.setDaemon(true);
+            t.setDaemon(false); // Non-daemon to ensure graceful shutdown on JVM exit
             return t;
         });
     }

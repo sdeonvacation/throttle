@@ -56,7 +56,7 @@ public class ScenarioRunner {
         try {
             // Create executor
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(5))
                 .queueCapacity(100)
                 .cpuMonitor(75, 50)
                 .memoryMonitor(70, 50)
@@ -123,7 +123,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(5))
                 .queueCapacity(100)
                 .cpuMonitor(70, 45)
                 .memoryMonitor(65, 45)
@@ -212,7 +212,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(5))
                 .queueCapacity(100)
                 .cpuMonitor(75, 50)
                 .memoryMonitor(70, 50)
@@ -300,7 +300,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(5))
                 .queueCapacity(100)
                 .cpuMonitor(80, 50)
                 .memoryMonitor(65, 45)
@@ -386,7 +386,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(3))
+                .workerThreadPool(Executors.newFixedThreadPool(3))
                 .queueCapacity(50)
                 .cpuMonitor(70, 40)  // Lower threshold to trigger easily
                 .memoryMonitor(60, 40)
@@ -531,7 +531,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(3))
+                .workerThreadPool(Executors.newFixedThreadPool(3))
                 .queueCapacity(50)
                 .cpuMonitor(75, 50)
                 .memoryMonitor(70, 50)
@@ -626,7 +626,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(8)) // Use more threads
+                .workerThreadPool(Executors.newFixedThreadPool(8)) // Use more threads
                 .queueCapacity(200)
                 .cpuMonitor(80, 55)
                 .memoryMonitor(75, 55)
@@ -709,7 +709,7 @@ public class ScenarioRunner {
         try {
             // Use a tight hot threshold so we can cross it with a moderate CPU spike
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(4))
+                .workerThreadPool(Executors.newFixedThreadPool(4))
                 .queueCapacity(50)
                 .cpuMonitor(55, 35)           // Low threshold — easier to cross
                 .memoryMonitor(85, 60)         // Memory threshold high — won't interfere
@@ -797,7 +797,7 @@ public class ScenarioRunner {
         try {
             // 1 worker thread + queue capacity 3 → easy to overflow
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(1))
+                .workerThreadPool(Executors.newFixedThreadPool(1))
                 .queueCapacity(3)
                 .cpuMonitor(90, 70)   // High threshold — won't trigger during this test
                 .memoryMonitor(90, 70)
@@ -887,7 +887,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(3))
+                .workerThreadPool(Executors.newFixedThreadPool(3))
                 .queueCapacity(50)
                 .cpuMonitor(90, 70)
                 .memoryMonitor(90, 70)
@@ -980,7 +980,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(3))
+                .workerThreadPool(Executors.newFixedThreadPool(3))
                 .queueCapacity(20)
                 .cpuMonitor(25, 15)          // Very low thresholds to ensure more pauses
                 .memoryMonitor(85, 60)
@@ -1099,7 +1099,7 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerExecutorService(Executors.newFixedThreadPool(3))
+                .workerThreadPool(Executors.newFixedThreadPool(3))
                 .queueCapacity(30)
                 .cpuMonitor(90, 70)
                 .memoryMonitor(90, 70)

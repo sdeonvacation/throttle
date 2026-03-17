@@ -98,21 +98,21 @@ public class ThrottleServiceFactory {
          * Set the worker thread pool.
          * If not provided, a default pool will be created.
          *
-         * @param pool ExecutorService for worker threads
+         * @param pool ExecutorService for worker threads that execute task chunks
          */
-        public Builder workerExecutorService(ExecutorService pool) {
-            configBuilder.workerExecutorService(pool);
+        public Builder workerThreadPool(ExecutorService pool) {
+            configBuilder.workerThreadPool(pool);
             return this;
         }
 
         /**
-         * Set the control plane thread pool.
+         * Set the monitoring thread pool.
          * If not provided, a default single-threaded pool will be created.
          *
-         * @param pool ExecutorService for control plane (monitoring, decision making)
+         * @param pool ExecutorService for monitoring and coordination (pause/resume decisions)
          */
-        public Builder controlPlaneExecutorService(ExecutorService pool) {
-            configBuilder.controlPlaneExecutorService(pool);
+        public Builder monitoringThreadPool(ExecutorService pool) {
+            configBuilder.monitoringThreadPool(pool);
             return this;
         }
 

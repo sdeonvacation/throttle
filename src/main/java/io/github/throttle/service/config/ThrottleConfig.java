@@ -10,25 +10,27 @@ public class ThrottleConfig {
     private final int queueCapacity;
     private final OverflowPolicy overflowPolicy;
     private final Duration starvationThreshold;
+    private final Duration starvationCheckInterval;
     private final Duration coldMonitoringInterval;
     private final Duration hotMonitoringDebounceInterval;
     private final int maxPauseCount;
     private final boolean taskTerminationEnabled;
     private final OverflowHandler overflowHandler;
-    private final ExecutorService workerExecutorService;
-    private final ExecutorService controlPlaneExecutorService;
+    private final ExecutorService workerThreadPool;
+    private final ExecutorService monitoringThreadPool;
 
     private ThrottleConfig(Builder builder) {
         this.queueCapacity = builder.queueCapacity;
         this.overflowPolicy = builder.overflowPolicy;
         this.starvationThreshold = builder.starvationThreshold;
+        this.starvationCheckInterval = builder.starvationCheckInterval;
         this.coldMonitoringInterval = builder.coldMonitoringInterval;
         this.hotMonitoringDebounceInterval = builder.hotMonitoringDebounceInterval;
         this.maxPauseCount = builder.maxPauseCount;
         this.taskTerminationEnabled = builder.taskTerminationEnabled;
         this.overflowHandler = builder.overflowHandler;
-        this.workerExecutorService = builder.workerExecutorService;
-        this.controlPlaneExecutorService = builder.controlPlaneExecutorService;
+        this.workerThreadPool = builder.workerThreadPool;
+        this.monitoringThreadPool = builder.monitoringThreadPool;
     }
 
 
@@ -46,6 +48,14 @@ public class ThrottleConfig {
      */
     public Duration getStarvationThreshold() {
         return starvationThreshold;
+    }
+
+    /**
+     * Get the starvation check interval.
+     * Anti-starvation checks run in the control plane at this interval (timer-based).
+     */
+    public Duration getStarvationCheckInterval() {
+        return starvationCheckInterval;
     }
 
     /**
@@ -78,12 +88,12 @@ public class ThrottleConfig {
         return overflowHandler;
     }
 
-    public ExecutorService getWorkerExecutorService() {
-        return workerExecutorService;
+    public ExecutorService getWorkerThreadPool() {
+        return workerThreadPool;
     }
 
-    public ExecutorService getControlPlaneExecutorService() {
-        return controlPlaneExecutorService;
+    public ExecutorService getMonitoringThreadPool() {
+        return monitoringThreadPool;
     }
 
     public static Builder builder() {
@@ -94,13 +104,14 @@ public class ThrottleConfig {
         private int queueCapacity = 25;
         private OverflowPolicy overflowPolicy = OverflowPolicy.BLOCK;
         private Duration starvationThreshold = Duration.ofHours(2);
+        private Duration starvationCheckInterval = Duration.ofMinutes(10);
         private Duration coldMonitoringInterval = Duration.ofSeconds(5);
         private Duration hotMonitoringDebounceInterval = Duration.ofSeconds(5);
         private int maxPauseCount = 5;
         private boolean taskTerminationEnabled = true;
         private OverflowHandler overflowHandler = null;
-        private ExecutorService workerExecutorService = null;
-        private ExecutorService controlPlaneExecutorService = null;
+        private ExecutorService workerThreadPool = null;
+        private ExecutorService monitoringThreadPool = null;
 
 
         public Builder queueCapacity(int capacity) {
@@ -122,6 +133,18 @@ public class ThrottleConfig {
          */
         public Builder starvationThreshold(Duration threshold) {
             this.starvationThreshold = threshold;
+            return this;
+        }
+
+        /**
+         * Set the starvation check interval.
+         * Anti-starvation checks run periodically in the control plane at this interval.
+         * Default: 10 minutes
+         *
+         * @param interval Duration between starvation checks
+         */
+        public Builder starvationCheckInterval(Duration interval) {
+            this.starvationCheckInterval = interval;
             return this;
         }
 
@@ -171,21 +194,21 @@ public class ThrottleConfig {
          * Set the worker thread pool.
          * If not provided, a default pool will be created.
          *
-         * @param pool ExecutorService for worker threads
+         * @param pool ExecutorService for worker threads that execute task chunks
          */
-        public Builder workerExecutorService(ExecutorService pool) {
-            this.workerExecutorService = pool;
+        public Builder workerThreadPool(ExecutorService pool) {
+            this.workerThreadPool = pool;
             return this;
         }
 
         /**
-         * Set the control plane thread pool.
+         * Set the monitoring thread pool.
          * If not provided, a default single-threaded pool will be created.
          *
-         * @param pool ExecutorService for control plane (monitoring, decision making)
+         * @param pool ExecutorService for monitoring and coordination (pause/resume decisions)
          */
-        public Builder controlPlaneExecutorService(ExecutorService pool) {
-            this.controlPlaneExecutorService = pool;
+        public Builder monitoringThreadPool(ExecutorService pool) {
+            this.monitoringThreadPool = pool;
             return this;
         }
 

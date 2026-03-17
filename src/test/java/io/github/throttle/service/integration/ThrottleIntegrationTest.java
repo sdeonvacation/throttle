@@ -44,8 +44,8 @@ public class ThrottleIntegrationTest {
         monitors.add(new MemoryMonitor(95, 50, Duration.ofMillis(500)));
 
         config = ThrottleConfig.builder()
-            .controlPlaneExecutorService(Executors.newFixedThreadPool(2))
-            .workerExecutorService(Executors.newFixedThreadPool(3))
+            .monitoringThreadPool(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(3))
             .queueCapacity(20)
             .maxPauseCount(3)
             .taskTerminationEnabled(true)
@@ -365,7 +365,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1)) // Single thread to ensure deterministic behavior
+            .workerThreadPool(Executors.newFixedThreadPool(1)) // Single thread to ensure deterministic behavior
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -466,7 +466,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1))
+            .workerThreadPool(Executors.newFixedThreadPool(1))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -518,7 +518,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2)) // 2 threads
+            .workerThreadPool(Executors.newFixedThreadPool(2)) // 2 threads
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -600,7 +600,7 @@ public class ThrottleIntegrationTest {
 
         int maxPauseCount = 2;
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1))
+            .workerThreadPool(Executors.newFixedThreadPool(1))
             .queueCapacity(10)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -700,7 +700,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1)) // Single thread for deterministic behavior
+            .workerThreadPool(Executors.newFixedThreadPool(1)) // Single thread for deterministic behavior
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -772,7 +772,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1))
+            .workerThreadPool(Executors.newFixedThreadPool(1))
             .queueCapacity(10)
             .coldMonitoringInterval(Duration.ofMillis(100))
             .hotMonitoringDebounceInterval(Duration.ofMillis(50))
@@ -842,7 +842,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(3))
+            .workerThreadPool(Executors.newFixedThreadPool(3))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -952,7 +952,7 @@ public class ThrottleIntegrationTest {
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
             .maxPauseCount(10)
             .taskTerminationEnabled(false)
-            .workerExecutorService(Executors.newFixedThreadPool(4)) // 4 workers for concurrency
+            .workerThreadPool(Executors.newFixedThreadPool(4)) // 4 workers for concurrency
             .build();
 
         ThrottleService testExecutor = new ThrottleServiceImpl(testConfig, testMonitors);
@@ -1298,7 +1298,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500)) // Fast cooldown checking for test
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -1364,7 +1364,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -1426,7 +1426,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(3))
+            .workerThreadPool(Executors.newFixedThreadPool(3))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -1506,7 +1506,7 @@ public class ThrottleIntegrationTest {
         testMonitors.add(controllableMonitor);
 
         ThrottleConfig testConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1))
+            .workerThreadPool(Executors.newFixedThreadPool(1))
             .queueCapacity(10)
             .coldMonitoringInterval(Duration.ofSeconds(2)) // 2 second interval
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))

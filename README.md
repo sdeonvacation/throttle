@@ -141,14 +141,14 @@ public class OrderService {
     public void generateDailyReport(List<Order> orders) {
         backgroundExecutor.submit(() -> {
             for (Order order : orders) {
-                reportService.process(order);  // If this runs during peak hours,
-            }                                   // it starves createOrder() of CPU
+                reportService.process(order);  // Delays business logic, increases latency,
+            }                                   // and can cause resource exhaustion/OOMs
         });
     }
 }
 ```
 
-**Problem:** During peak traffic, `generateDailyReport()` competes with `createOrder()` for CPU. Your customers experience slow checkouts because background reports are consuming resources.
+**Problem:** During peak traffic, `generateDailyReport()` competes with `createOrder()` for CPU/memory. Your customers experience slow checkouts because background reports are consuming resources.
 
 #### After: Using Throttle
 
@@ -231,7 +231,7 @@ public class ThrottleConfig {
     @Bean
     public ThrottleService throttleService() {
         return ThrottleServiceFactory.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(4))
+            .workerThreadPool(Executors.newFixedThreadPool(4))
             .cpuMonitor(75, 50)
             .memoryMonitor(70, 50)
             .build();
@@ -316,8 +316,8 @@ SUBMITTED → QUEUED → RUNNING → [PAUSED] → RUNNING → COMPLETED/FAILED/K
 
 | Option | Description | Default | Your Control |
 |--------|-------------|---------|--------------|
-| `workerExecutorService` | Thread pool for task execution | Fixed pool of 2 threads | **Provide your own or use default** |
-| `controlPlaneExecutorService` | Thread pool for monitoring/coordination | Fixed pool of 2 threads | **Provide your own or use default** |
+| `workerThreadPool` | Thread pool for task execution | Fixed pool of 2 threads | **Provide your own or use default** |
+| `monitoringThreadPool` | Thread pool for monitoring/coordination | Fixed pool of 2 threads | **Provide your own or use default** |
 | `queueCapacity` | Maximum tasks in queue | 100 | **Set based on your workload** |
 | `cpuMonitor(hot, cold)` | CPU thresholds (%) | 75, 50 | **Tune for your hardware** |
 | `memoryMonitor(hot, cold)` | Memory thresholds (%) | 70, 50 | **Tune for your heap size** |
@@ -336,13 +336,13 @@ You have **complete control** over the thread pools:
 ```java
 // Example 1: Large worker pool for high throughput
 ThrottleService executor = ThrottleServiceFactory.builder()
-    .workerExecutorService(Executors.newFixedThreadPool(20))
-    .controlPlaneExecutorService(Executors.newFixedThreadPool(2))  // monitoring threads
+    .workerThreadPool(Executors.newFixedThreadPool(20))
+    .monitoringThreadPool(Executors.newFixedThreadPool(2))  // monitoring threads
     .build();
 
 // Example 2: Cached thread pool for dynamic workloads
 ThrottleService executor = ThrottleServiceFactory.builder()
-    .workerExecutorService(Executors.newCachedThreadPool())
+    .workerThreadPool(Executors.newCachedThreadPool())
     .build();
 
 // Example 3: Custom thread factory with naming
@@ -350,7 +350,7 @@ ThreadFactory factory = new ThreadFactoryBuilder()
     .setNameFormat("my-app-worker-%d")
     .build();
 ThrottleService executor = ThrottleServiceFactory.builder()
-    .workerExecutorService(Executors.newFixedThreadPool(10, factory))
+    .workerThreadPool(Executors.newFixedThreadPool(10, factory))
     .build();
 
 // Example 4: Use defaults (2 threads each)

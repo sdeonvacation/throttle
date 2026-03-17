@@ -6,7 +6,7 @@
 
     <groupId>io.github.sdeonvacation</groupId>
     <artifactId>throttle-simulator</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
     <name>Throttle Simulator</name>
     <description>Spring Boot application to test Throttle Service with real CPU/Memory load</description>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>io.github.sdeonvacation</groupId>
             <artifactId>throttle</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
         </dependency>
 
         <!-- Spring Boot -->

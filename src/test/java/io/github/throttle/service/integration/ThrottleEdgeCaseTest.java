@@ -51,7 +51,7 @@ public class ThrottleEdgeCaseTest {
     @Before
     public void setUp() {
         defaultConfig = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(500))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -89,7 +89,7 @@ public class ThrottleEdgeCaseTest {
         FlappingMonitor monitor = new FlappingMonitor("flapping");
 
         ThrottleConfig cfg = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(20)
             .coldMonitoringInterval(Duration.ofMillis(200))
             .hotMonitoringDebounceInterval(Duration.ofMillis(150))
@@ -157,7 +157,7 @@ public class ThrottleEdgeCaseTest {
         ThrowingMonitor faultyMonitor = new ThrowingMonitor("faulty");
 
         ThrottleConfig cfg = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(10)
             .coldMonitoringInterval(Duration.ofMillis(300))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -277,7 +277,7 @@ public class ThrottleEdgeCaseTest {
     public void testQueueOverflow_DiscardOldest_NewTaskAccepted() throws Exception {
         // One slow worker to keep the single thread busy while we fill the queue
         ThrottleConfig cfg = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1))
+            .workerThreadPool(Executors.newFixedThreadPool(1))
             .queueCapacity(3)
             .overflowPolicy(OverflowPolicy.DISCARD_OLDEST)
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -340,7 +340,7 @@ public class ThrottleEdgeCaseTest {
         ControllableMonitor monitor = new ControllableMonitor("ctrl", 80, 50);
 
         ThrottleConfig cfg = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(10)
             .coldMonitoringInterval(Duration.ofMillis(300))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))
@@ -531,7 +531,7 @@ public class ThrottleEdgeCaseTest {
         ControllableMonitor monitor = new ControllableMonitor("ctrl", 80, 50);
 
         ThrottleConfig cfg = ThrottleConfig.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
             .queueCapacity(10)
             .coldMonitoringInterval(Duration.ofMillis(300))
             .hotMonitoringDebounceInterval(Duration.ofMillis(100))

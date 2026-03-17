@@ -22,8 +22,8 @@ public class ThrottleExample {
     public static void main(String[] args) throws Exception {
         // Create executor service with configuration
         ThrottleService executor = ThrottleServiceFactory.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(2))
-            .controlPlaneExecutorService(Executors.newFixedThreadPool(1))
+            .workerThreadPool(Executors.newFixedThreadPool(2))
+            .monitoringThreadPool(Executors.newFixedThreadPool(1))
             .queueCapacity(100)               // Max 100 pending tasks
             .cpuMonitor(75, 45)               // Pause if CPU > 75%, resume if < 45%
             .memoryMonitor(70, 45)            // Pause if Memory > 70%, resume if < 45%

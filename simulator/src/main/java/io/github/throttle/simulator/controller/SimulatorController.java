@@ -251,6 +251,40 @@ public class SimulatorController {
         }
     }
 
+    @PostMapping("/executor/pause")
+    @ResponseBody
+    public ResponseEntity<?> pauseExecutor() {
+        log.info("API: pauseExecutor");
+        if (executor == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Executor not available"));
+        }
+
+        try {
+            executor.pauseAll();
+            return ResponseEntity.ok(Map.of("message", "Executor paused successfully"));
+        } catch (Exception e) {
+            log.error("Error pausing executor", e);
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/executor/resume")
+    @ResponseBody
+    public ResponseEntity<?> resumeExecutor() {
+        log.info("API: resumeExecutor");
+        if (executor == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Executor not available"));
+        }
+
+        try {
+            executor.resumeAll();
+            return ResponseEntity.ok(Map.of("message", "Executor resumed successfully"));
+        } catch (Exception e) {
+            log.error("Error resuming executor", e);
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/status")
     @ResponseBody
     public Map<String, Object> status() {

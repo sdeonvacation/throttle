@@ -68,8 +68,8 @@ public class ThrottleServiceImpl implements ThrottleService {
         // Create modular components
         this.monitoringCoordinator = new MonitoringCoordinator(monitors);
         this.executionCoordinator = new ExecutionCoordinator(config, priorityQueue, monitoringCoordinator,
-                                               config.getControlPlaneExecutorService());
-        this.taskExecutor = new TaskExecutor(priorityQueue, config, config.getWorkerExecutorService(),
+                                               config.getMonitoringThreadPool());
+        this.taskExecutor = new TaskExecutor(priorityQueue, config, config.getWorkerThreadPool(),
                 executionCoordinator, monitoringCoordinator, queuePermits);
 
         // Wire the circular reference: executionCoordinator needs taskExecutor to
@@ -188,16 +188,16 @@ public class ThrottleServiceImpl implements ThrottleService {
                 }
 
             case DISCARD_OLDEST:
-                // Remove oldest task, cancel it, and release its permit for reuse
+                // Remove oldest task, cancel it, and transfer its permit to the new task
                 ChunkableTask<?> oldest = priorityQueue.poll();
                 if (oldest != null) {
                     LOGGER.warning("(handleQueueOverflow) Discarded oldest task: " + oldest.getTaskId());
                     oldest.cancel(false);
-                    // The oldest task's permit needs to be released since it won't be
-                    // dequeued by a worker. This permit will be reused by the new task.
-                    queuePermits.release();
-                    // Now try to acquire a permit for the new task
-                    return queuePermits.tryAcquire();
+                    // The polled task already consumed a permit when it was queued.
+                    // Transfer that permit to the new task by NOT releasing it here.
+                    // This eliminates the race where another thread could steal the permit
+                    // between release() and tryAcquire().
+                    return true; // Permit already available (transferred from discarded task)
                 } else {
                     // Queue is empty but no permit available - should not happen
                     LOGGER.log(Level.SEVERE, "(handleQueueOverflow) DISCARD_OLDEST: Queue is empty but no permit available");

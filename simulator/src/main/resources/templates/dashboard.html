@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Throttle Service Dashboard - Live Dashboard</title>
+    <title>Throttle Service Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,74 +14,77 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #0a0e27;
-            color: #e0e6ed;
-            padding: 20px;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 24px;
+            line-height: 1.5;
         }
 
         .header {
+            margin-bottom: 32px;
+            padding: 24px 0;
+            border-bottom: 1px solid #21262d;
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, #1a2744 0%, #2d3e6b 100%);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         h1 {
-            color: #00d9ff;
-            font-size: 2em;
-            margin-bottom: 10px;
+            color: #f0f6fc;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
 
         .subtitle {
-            color: #8892a6;
-            font-size: 0.9em;
+            color: #8b949e;
+            font-size: 0.875rem;
         }
 
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 16px;
         }
 
         .card {
-            background: #161d35;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 1px solid #2d3e6b;
+            background: #161b22;
+            border-radius: 6px;
+            padding: 16px;
+            border: 1px solid #30363d;
         }
 
         .card-title {
-            font-size: 1.1em;
-            color: #00d9ff;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .status-indicator {
-            width: 10px;
-            height: 10px;
+            display: inline-block;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #4caf50;
-            animation: pulse 2s infinite;
+            background: #3fb950;
+            margin-right: 8px;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .status-indicator.warning {
+            background: #d29922;
+        }
+
+        .status-indicator.error {
+            background: #f85149;
         }
 
         .metric {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #2d3e6b;
+            padding: 12px 0;
+            border-bottom: 1px solid #21262d;
         }
 
         .metric:last-child {
@@ -88,97 +92,123 @@
         }
 
         .metric-label {
-            color: #8892a6;
+            color: #8b949e;
+            font-size: 0.875rem;
         }
 
         .metric-value {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #00ff88;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .metric-value.success {
+            color: #3fb950;
+        }
+
+        .metric-value.warning {
+            color: #d29922;
+        }
+
+        .metric-value.error {
+            color: #f85149;
         }
 
         .progress-bar {
             width: 100%;
-            height: 30px;
-            background: #0a0e27;
-            border-radius: 5px;
+            height: 8px;
+            background: #21262d;
+            border-radius: 4px;
             overflow: hidden;
-            margin-top: 10px;
-            position: relative;
+            margin-top: 8px;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #00ff88 0%, #00d9ff 100%);
+            background: #3fb950;
             transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #0a0e27;
-            font-weight: bold;
-            font-size: 0.9em;
+            border-radius: 4px;
         }
 
         .progress-fill.warning {
-            background: linear-gradient(90deg, #ffa500 0%, #ff8c00 100%);
+            background: #d29922;
         }
 
         .progress-fill.danger {
-            background: linear-gradient(90deg, #ff4444 0%, #cc0000 100%);
+            background: #f85149;
         }
 
         .button-group {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 16px;
         }
 
         .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-            color: white;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.15s ease;
+            color: #c9d1d9;
+            background: #21262d;
+        }
+
+        .btn:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+
+        .btn:active {
+            background: #161b22;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #00d9ff 0%, #0088cc 100%);
+            background: #238636;
+            border-color: #2ea043;
+            color: #ffffff;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #00eeff 0%, #0099dd 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,217,255,0.3);
+            background: #2ea043;
+            border-color: #3fb950;
         }
 
         .btn-success {
-            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            background: #1f6feb;
+            border-color: #388bfd;
+            color: #ffffff;
         }
 
         .btn-success:hover {
-            background: linear-gradient(135deg, #00ff99 0%, #00dd77 100%);
-            transform: translateY(-2px);
+            background: #388bfd;
+            border-color: #58a6ff;
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            background: #da3633;
+            border-color: #f85149;
+            color: #ffffff;
         }
 
         .btn-danger:hover {
-            background: linear-gradient(135deg, #ff5555 0%, #dd1111 100%);
-            transform: translateY(-2px);
+            background: #f85149;
+            border-color: #ff7b72;
         }
 
         .btn-warning {
-            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+            background: #9e6a03;
+            border-color: #d29922;
+            color: #ffffff;
         }
 
         .btn-warning:hover {
-            background: linear-gradient(135deg, #ffb500 0%, #ff9c00 100%);
-            transform: translateY(-2px);
+            background: #d29922;
+            border-color: #e3b341;
         }
 
         .btn:disabled {
@@ -186,113 +216,204 @@
             cursor: not-allowed;
         }
 
+        .btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spinner 0.6s linear infinite;
+        }
+
+        @keyframes spinner {
+            to { transform: rotate(360deg); }
+        }
+
         .control-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
-            margin: 10px 0;
+            margin: 8px 0;
         }
 
         .control-row input {
             flex: 1;
-            padding: 8px;
-            background: #0a0e27;
-            border: 1px solid #2d3e6b;
-            border-radius: 5px;
-            color: #e0e6ed;
+            padding: 6px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 0.875rem;
+        }
+
+        .control-row input:focus {
+            outline: none;
+            border-color: #58a6ff;
         }
 
         .control-row label {
-            min-width: 80px;
-            color: #8892a6;
+            min-width: 90px;
+            color: #8b949e;
+            font-size: 0.875rem;
         }
 
         .badge {
             display: inline-block;
-            padding: 4px 12px;
+            padding: 2px 8px;
             border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: bold;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .badge-success {
-            background: #00ff88;
-            color: #0a0e27;
+            background: #2ea04326;
+            color: #3fb950;
         }
 
         .badge-danger {
-            background: #ff4444;
-            color: white;
+            background: #f8514926;
+            color: #f85149;
         }
 
         .badge-warning {
-            background: #ffa500;
-            color: #0a0e27;
+            background: #d2992226;
+            color: #d29922;
         }
 
         .badge-info {
-            background: #00d9ff;
-            color: #0a0e27;
+            background: #58a6ff26;
+            color: #58a6ff;
         }
 
         .log-container {
-            background: #0a0e27;
-            border-radius: 5px;
-            padding: 15px;
-            max-height: 200px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            height: 400px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+            font-size: 0.8125rem;
+        }
+
+        .log-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .log-controls input {
+            flex: 1;
+            padding: 6px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 0.875rem;
         }
 
         .log-entry {
-            padding: 5px 0;
-            color: #8892a6;
+            padding: 4px 0;
+            color: #8b949e;
+            line-height: 1.4;
+        }
+
+        .log-entry .time {
+            color: #6e7681;
+            margin-right: 8px;
         }
 
         .log-entry.info {
-            color: #00d9ff;
+            color: #58a6ff;
         }
 
         .log-entry.success {
-            color: #00ff88;
+            color: #3fb950;
         }
 
         .log-entry.error {
-            color: #ff4444;
+            color: #f85149;
         }
 
         .connection-status {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: bold;
+            top: 24px;
+            right: 24px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
             z-index: 1000;
+            border: 1px solid;
         }
 
         .connection-status.connected {
-            background: #00ff88;
-            color: #0a0e27;
+            background: #2ea04326;
+            color: #3fb950;
+            border-color: #3fb950;
         }
 
         .connection-status.disconnected {
-            background: #ff4444;
-            color: white;
+            background: #f8514926;
+            color: #f85149;
+            border-color: #f85149;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 16px;
+        }
+
+        .executor-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .executor-controls .btn {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .connection-status {
+                position: static;
+                margin-bottom: 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="connectionStatus" class="connection-status disconnected">⚠ Disconnected</div>
+    <div id="connectionStatus" class="connection-status disconnected">Disconnected</div>
 
     <div class="header">
-        <h1>🚀 Throttle Service Dashboard</h1>
-        <p class="subtitle">Real-time monitoring dashboard • Resource-aware task execution with automatic pause/resume</p>
+        <h1>Throttle Service Dashboard</h1>
+        <p class="subtitle">Resource-aware task execution with automatic pause/resume</p>
     </div>
 
     <div class="dashboard-grid">
-        <!-- System Resources -->
+        <!-- System Resources with Charts -->
         <div class="card">
             <div class="card-title">
                 <span class="status-indicator" id="systemStatus"></span>
@@ -303,15 +424,19 @@
                 <span class="metric-value" id="cpuValue">0%</span>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="cpuBar" style="width: 0%">0%</div>
+                <div class="progress-fill" id="cpuBar" style="width: 0%"></div>
             </div>
 
-            <div class="metric" style="margin-top: 15px;">
+            <div class="metric" style="margin-top: 16px;">
                 <span class="metric-label">Memory Usage</span>
                 <span class="metric-value" id="memoryValue">0%</span>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="memoryBar" style="width: 0%">0%</div>
+                <div class="progress-fill" id="memoryBar" style="width: 0%"></div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="resourceChart"></canvas>
             </div>
         </div>
 
@@ -335,10 +460,15 @@
                 <span id="pausedStatus" class="badge badge-success">NO</span>
             </div>
             <div class="metric">
-                <span class="metric-label" title="Number of times executor paused ALL tasks due to resource pressure (CPU/Memory hot)">
-                    Pause Count <span style="font-size: 0.8em; color: #888;">ⓘ</span>
+                <span class="metric-label" title="Number of times executor paused all tasks due to resource pressure">
+                    Pause Count
                 </span>
                 <span class="metric-value" id="pauseCount">0</span>
+            </div>
+
+            <div class="executor-controls">
+                <button class="btn btn-warning" onclick="pauseExecutor()" id="pauseBtn">Pause All</button>
+                <button class="btn btn-success" onclick="resumeExecutor()" id="resumeBtn">Resume All</button>
             </div>
         </div>
 
@@ -347,15 +477,19 @@
             <div class="card-title">Task Metrics</div>
             <div class="metric">
                 <span class="metric-label">Completed</span>
-                <span class="metric-value" style="color: #00ff88" id="tasksCompleted">0</span>
+                <span class="metric-value success" id="tasksCompleted">0</span>
             </div>
             <div class="metric">
                 <span class="metric-label">Failed</span>
-                <span class="metric-value" style="color: #ffa500" id="tasksFailed">0</span>
+                <span class="metric-value warning" id="tasksFailed">0</span>
             </div>
             <div class="metric">
                 <span class="metric-label">Killed</span>
-                <span class="metric-value" style="color: #ff4444" id="tasksKilled">0</span>
+                <span class="metric-value error" id="tasksKilled">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Success Rate</span>
+                <span class="metric-value" id="successRate">—</span>
             </div>
         </div>
 
@@ -381,8 +515,8 @@
     <div class="dashboard-grid">
         <div class="card">
             <div class="card-title">
-                💻 CPU Load Control
-                <span id="cpuLoadBadge" class="badge badge-info">Inactive</span>
+                CPU Load Control
+                <span id="cpuLoadBadge" class="badge badge-info" style="margin-left: 8px;">Inactive</span>
             </div>
             <div class="control-row">
                 <label>Target %:</label>
@@ -393,15 +527,15 @@
                 <input type="number" id="cpuDuration" value="10000" min="1000" max="60000">
             </div>
             <div class="button-group">
-                <button class="btn btn-success" onclick="startCpuLoad()">Start CPU Load</button>
+                <button class="btn btn-success" onclick="startCpuLoad()">Start Load</button>
                 <button class="btn btn-danger" onclick="stopCpuLoad()">Stop</button>
             </div>
         </div>
 
         <div class="card">
             <div class="card-title">
-                🧠 Memory Load Control
-                <span id="memoryLoadBadge" class="badge badge-info">Inactive</span>
+                Memory Load Control
+                <span id="memoryLoadBadge" class="badge badge-info" style="margin-left: 8px;">Inactive</span>
             </div>
             <div class="control-row">
                 <label>Target %:</label>
@@ -412,13 +546,13 @@
                 <input type="number" id="memoryDuration" value="10000" min="1000" max="60000">
             </div>
             <div class="button-group">
-                <button class="btn btn-success" onclick="startMemoryLoad()">Start Memory Load</button>
+                <button class="btn btn-success" onclick="startMemoryLoad()">Start Load</button>
                 <button class="btn btn-danger" onclick="stopMemoryLoad()">Stop</button>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">🧪 Test Scenarios</div>
+            <div class="card-title">Test Scenarios</div>
             <div class="button-group">
                 <button class="btn btn-primary" onclick="runTest('normal-operation')">Normal</button>
                 <button class="btn btn-primary" onclick="runTest('resource-spike')">Spike</button>
@@ -435,7 +569,7 @@
     <!-- Configuration Info -->
     <div class="dashboard-grid">
         <div class="card">
-            <div class="card-title">⚙️ Throttle Configuration</div>
+            <div class="card-title">Throttle Configuration</div>
             <div class="metric">
                 <span class="metric-label">CPU Thresholds (Hot/Cold)</span>
                 <span class="metric-value" id="cpuThresholds">75% / 50%</span>
@@ -457,9 +591,14 @@
 
     <!-- Activity Log -->
     <div class="card">
-        <div class="card-title">📋 Activity Log</div>
+        <div class="card-title">Activity Log</div>
+        <div class="log-controls">
+            <input type="text" id="logFilter" placeholder="Filter logs...">
+            <button class="btn" onclick="clearLogs()">Clear</button>
+            <button class="btn" onclick="exportLogs()">Export</button>
+        </div>
         <div class="log-container" id="logContainer">
-            <div class="log-entry">Dashboard initialized. Waiting for connection...</div>
+            <div class="log-entry"><span class="time">--:--:--</span> Dashboard initialized. Waiting for connection...</div>
         </div>
     </div>
 
@@ -467,10 +606,99 @@
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <script>
         let stompClient = null;
+        let resourceChart = null;
+        let cpuHistory = [];
+        let memoryHistory = [];
+        let timeLabels = [];
+        const MAX_HISTORY = 60; // Keep last 60 data points
+        let allLogs = [];
+
+        function initChart() {
+            const ctx = document.getElementById('resourceChart').getContext('2d');
+            resourceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: 'CPU %',
+                            data: cpuHistory,
+                            borderColor: '#58a6ff',
+                            backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Memory %',
+                            data: memoryHistory,
+                            borderColor: '#3fb950',
+                            backgroundColor: 'rgba(63, 185, 80, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#8b949e',
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: '#8b949e',
+                                font: { size: 10 }
+                            },
+                            grid: {
+                                color: '#21262d'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#8b949e',
+                                font: { size: 10 },
+                                maxRotation: 0
+                            },
+                            grid: {
+                                color: '#21262d'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(cpuPercent, memPercent) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+
+            cpuHistory.push(cpuPercent);
+            memoryHistory.push(memPercent);
+            timeLabels.push(timeStr);
+
+            if (cpuHistory.length > MAX_HISTORY) {
+                cpuHistory.shift();
+                memoryHistory.shift();
+                timeLabels.shift();
+            }
+
+            if (resourceChart) {
+                resourceChart.update('none'); // Update without animation for smooth real-time
+            }
+        }
 
         function connect() {
             const socket = new SockJS('/ws-monitor');
             stompClient = Stomp.over(socket);
+            stompClient.debug = null; // Disable debug logging
 
             stompClient.connect({}, function(frame) {
                 log('Connected to monitoring service', 'success');
@@ -479,10 +707,8 @@
                 stompClient.subscribe('/topic/monitor', function(message) {
                     const data = JSON.parse(message.body);
                     if (data.type === 'log') {
-                        // Handle log messages separately
                         log(data.message, data.level);
                     } else {
-                        // Handle dashboard updates
                         updateDashboard(data);
                     }
                 });
@@ -495,12 +721,20 @@
 
         function updateConnectionStatus(connected) {
             const status = document.getElementById('connectionStatus');
+            const indicator = document.getElementById('systemStatus');
+
             if (connected) {
                 status.className = 'connection-status connected';
-                status.textContent = '✓ Connected';
+                status.textContent = 'Connected';
+                if (indicator) {
+                    indicator.className = 'status-indicator';
+                }
             } else {
                 status.className = 'connection-status disconnected';
-                status.textContent = '⚠ Disconnected';
+                status.textContent = 'Disconnected';
+                if (indicator) {
+                    indicator.className = 'status-indicator error';
+                }
             }
         }
 
@@ -515,16 +749,14 @@
             document.getElementById('memoryValue').textContent = memPercent + '%';
             updateProgressBar('memoryBar', memPercent);
 
-            // Executor - check if active
-            const hasExecutor = data.queueSize > 0 || data.activeThreads > 0 ||
-                               data.tasksCompleted > 0 || data.tasksFailed > 0;
+            // Update chart
+            updateChart(cpuPercent, memPercent);
 
+            // Executor metrics
             document.getElementById('queueSize').textContent = (data.queueSize || 0);
             document.getElementById('activeThreads').textContent = (data.activeThreads || 0);
             document.getElementById('pauseCount').textContent = (data.pauseCount || 0);
 
-            // Calculate idle threads (assuming total worker threads are known or derived)
-            // For now, we'll calculate based on active threads vs queue size
             const idleThreads = Math.max(0, (data.totalWorkerThreads || 2) - (data.activeThreads || 0));
             document.getElementById('idleThreads').textContent = idleThreads;
 
@@ -539,15 +771,27 @@
             }
 
             // Tasks
-            document.getElementById('tasksCompleted').textContent = (data.tasksCompleted || 0);
-            document.getElementById('tasksFailed').textContent = (data.tasksFailed || 0);
-            document.getElementById('tasksKilled').textContent = (data.tasksKilled || 0);
+            const completed = data.tasksCompleted || 0;
+            const failed = data.tasksFailed || 0;
+            const killed = data.tasksKilled || 0;
+            document.getElementById('tasksCompleted').textContent = completed;
+            document.getElementById('tasksFailed').textContent = failed;
+            document.getElementById('tasksKilled').textContent = killed;
+
+            // Calculate success rate
+            const total = completed + failed + killed;
+            if (total > 0) {
+                const rate = Math.round((completed / total) * 100);
+                document.getElementById('successRate').textContent = rate + '%';
+            } else {
+                document.getElementById('successRate').textContent = '—';
+            }
 
             // Monitor status badges
             updateMonitorStatus('cpuMonitorStatus', data.cpuMonitorState || 'NORMAL');
             updateMonitorStatus('memoryMonitorStatus', data.memoryMonitorState || 'NORMAL');
 
-            // System state based on paused status
+            // System state
             const systemStateBadge = document.getElementById('systemState');
             if (data.paused) {
                 systemStateBadge.textContent = 'PAUSED';
@@ -565,7 +809,6 @@
         function updateProgressBar(id, percent) {
             const bar = document.getElementById(id);
             bar.style.width = percent + '%';
-            bar.textContent = percent + '%';
 
             if (percent >= 80) {
                 bar.className = 'progress-fill danger';
@@ -606,17 +849,73 @@
             const container = document.getElementById('logContainer');
             const entry = document.createElement('div');
             entry.className = 'log-entry ' + type;
-            const time = new Date().toLocaleTimeString();
-            entry.textContent = `[${time}] ${message}`;
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'time';
+            timeSpan.textContent = time;
+            entry.appendChild(timeSpan);
+            entry.appendChild(document.createTextNode(' ' + message));
             container.insertBefore(entry, container.firstChild);
 
-            // Keep only last 50 entries
-            while (container.children.length > 50) {
+            // Store in allLogs array
+            allLogs.unshift({ time, message, type });
+
+            // Keep only last 200 entries
+            while (container.children.length > 200) {
                 container.removeChild(container.lastChild);
+            }
+            if (allLogs.length > 200) {
+                allLogs = allLogs.slice(0, 200);
+            }
+
+            // Apply filter if active
+            applyLogFilter();
+        }
+
+        function applyLogFilter() {
+            const filterValue = document.getElementById('logFilter').value.toLowerCase();
+            const container = document.getElementById('logContainer');
+            const entries = container.getElementsByClassName('log-entry');
+
+            for (let entry of entries) {
+                const text = entry.textContent.toLowerCase();
+                if (filterValue === '' || text.includes(filterValue)) {
+                    entry.style.display = '';
+                } else {
+                    entry.style.display = 'none';
+                }
             }
         }
 
+        function clearLogs() {
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+            allLogs = [];
+            log('Logs cleared', 'info');
+        }
+
+        function exportLogs() {
+            const logText = allLogs.map(l => `[${l.time}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `throttle-logs-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log('Logs exported', 'success');
+        }
+
+        // Add filter event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('logFilter').addEventListener('input', applyLogFilter);
+        });
+
         async function startCpuLoad() {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
             const percent = document.getElementById('cpuPercent').value;
             const duration = document.getElementById('cpuDuration').value;
 
@@ -630,10 +929,17 @@
                 log(data.message, 'success');
             } catch (error) {
                 log('Error starting CPU load: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         }
 
         async function stopCpuLoad() {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
             log('Stopping CPU load', 'info');
             try {
                 const response = await fetch('/api/simulator/load/cpu/stop', { method: 'POST' });
@@ -641,10 +947,17 @@
                 log(data.message, 'success');
             } catch (error) {
                 log('Error stopping CPU load: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         }
 
         async function startMemoryLoad() {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
             const percent = document.getElementById('memoryPercent').value;
             const duration = document.getElementById('memoryDuration').value;
 
@@ -658,10 +971,17 @@
                 log(data.message, 'success');
             } catch (error) {
                 log('Error starting memory load: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         }
 
         async function stopMemoryLoad() {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
             log('Stopping memory load', 'info');
             try {
                 const response = await fetch('/api/simulator/load/memory/stop', { method: 'POST' });
@@ -669,10 +989,53 @@
                 log(data.message, 'success');
             } catch (error) {
                 log('Error stopping memory load: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function pauseExecutor() {
+            const btn = document.getElementById('pauseBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            log('Pausing executor...', 'info');
+            try {
+                const response = await fetch('/api/simulator/executor/pause', { method: 'POST' });
+                const data = await response.json();
+                log(data.message || 'Executor paused', 'success');
+            } catch (error) {
+                log('Error pausing executor: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function resumeExecutor() {
+            const btn = document.getElementById('resumeBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            log('Resuming executor...', 'info');
+            try {
+                const response = await fetch('/api/simulator/executor/resume', { method: 'POST' });
+                const data = await response.json();
+                log(data.message || 'Executor resumed', 'success');
+            } catch (error) {
+                log('Error resuming executor: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         }
 
         async function runTest(testName) {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
             log(`Running test: ${testName}`, 'info');
 
             try {
@@ -680,16 +1043,23 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    log(`✓ Test ${testName} completed: ${data.duration}ms, completed=${data.tasksCompleted}`, 'success');
+                    log(`Test ${testName} completed: ${data.duration}ms, completed=${data.tasksCompleted}`, 'success');
                 } else {
-                    log(`✗ Test ${testName} failed: ${data.error}`, 'error');
+                    log(`Test ${testName} failed: ${data.error}`, 'error');
                 }
             } catch (error) {
                 log('Error running test: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         }
 
         async function runAllTests() {
+            const btn = event.target;
+            btn.classList.add('loading');
+            btn.disabled = true;
+
             log('Starting all tests...', 'info');
 
             try {
@@ -698,14 +1068,18 @@
                 log(`All tests completed: ${data.passed}/${data.totalTests} passed`, data.passed === data.totalTests ? 'success' : 'error');
             } catch (error) {
                 log('Error running tests: ' + error, 'error');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         }
 
-        // Connect on page load
-        connect();
-
-        // Log initial message
-        log('Dashboard ready. Connect to see live updates.', 'info');
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            connect();
+            log('Dashboard ready. Connecting to server...', 'info');
+        });
     </script>
 </body>
 </html>

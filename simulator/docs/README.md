@@ -242,7 +242,7 @@ The simulator uses the Throttle library directly. Each scenario creates a fresh 
 
 ```java
 ThrottleService executor = ThrottleServiceFactory.builder()
-    .workerExecutorService(Executors.newFixedThreadPool(5))  // client provides pool
+    .workerThreadPool(Executors.newFixedThreadPool(5))  // client provides pool
     .queueCapacity(100)
     .cpuMonitor(75, 50)          // hot=75%, cold=50%
     .memoryMonitor(70, 50)

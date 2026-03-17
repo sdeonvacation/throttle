@@ -63,7 +63,7 @@ public class MonitoringService {
         // Create standalone executor with monitors for dashboard
         // This runs continuously and provides CPU/Memory metrics even when no test is running
         standaloneExecutor = ThrottleServiceFactory.builder()
-            .workerExecutorService(Executors.newFixedThreadPool(1)) // Minimal pool, just for monitoring
+            .workerThreadPool(Executors.newFixedThreadPool(1)) // Minimal pool, just for monitoring
             .queueCapacity(10)
             .cpuMonitor(75, 50)
             .memoryMonitor(70, 50)

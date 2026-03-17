@@ -33,8 +33,8 @@ public class TaskExecutor {
 
     private final PriorityBlockingQueue<ChunkableTask<?>> priorityQueue;
     private final ThrottleConfig config;
-    private final ExecutorService workerExecutorService;
-    private final boolean ownsWorkerExecutorService;
+    private final ExecutorService workerThreadPool;
+    private final boolean ownsWorkerThreadPool;
     private final int poolSize;
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final ExecutionCoordinator executionCoordinator;
@@ -68,7 +68,7 @@ public class TaskExecutor {
 
     public TaskExecutor(PriorityBlockingQueue<ChunkableTask<?>> priorityQueue,
                         ThrottleConfig config,
-                        ExecutorService workerExecutorService,
+                        ExecutorService workerThreadPool,
                         ExecutionCoordinator executionCoordinator,
                         MonitoringCoordinator monitoringCoordinator,
                         Semaphore queuePermits) {
@@ -80,15 +80,15 @@ public class TaskExecutor {
         this.hotMonitoringIntervalMs = config.getHotMonitoringDebounceInterval().toMillis();
 
         // Use provided pool or create default
-        if (workerExecutorService != null) {
-            this.workerExecutorService = workerExecutorService;
-            this.ownsWorkerExecutorService = false;
-            this.poolSize = getPoolSizeFromExecutorService(workerExecutorService);
+        if (workerThreadPool != null) {
+            this.workerThreadPool = workerThreadPool;
+            this.ownsWorkerThreadPool = false;
+            this.poolSize = getPoolSizeFromExecutorService(workerThreadPool);
             LOGGER.info("TaskHandler using client-provided worker pool");
         } else {
             this.poolSize = DEFAULT_POOL_SIZE;
-            this.workerExecutorService = createDefaultWorkerExecutorService();
-            this.ownsWorkerExecutorService = true;
+            this.workerThreadPool = createDefaultWorkerExecutorService();
+            this.ownsWorkerThreadPool = true;
             LOGGER.info("TaskHandler created default worker pool with size: " + DEFAULT_POOL_SIZE);
         }
     }
@@ -99,7 +99,7 @@ public class TaskExecutor {
     public void start() {
         workerLatch = new CountDownLatch(poolSize);
         for (int i = 0; i < poolSize; i++) {
-            workerExecutorService.execute(new WorkerThread());
+            workerThreadPool.execute(new WorkerThread());
         }
         LOGGER.info("Started " + poolSize + " worker threads for adaptive executor");
     }
@@ -128,8 +128,8 @@ public class TaskExecutor {
         if (shutdown.compareAndSet(false, true)) {
             LOGGER.info("Shutting down Adaptive Executor worker - initiating graceful shutdown of worker threads");
             interruptIdleWorkers();
-            if (ownsWorkerExecutorService) {
-                workerExecutorService.shutdown();
+            if (ownsWorkerThreadPool) {
+                workerThreadPool.shutdown();
             }
         }
     }
@@ -142,9 +142,9 @@ public class TaskExecutor {
      */
     public void shutdownNow() {
         shutdown.set(true);
-        if (ownsWorkerExecutorService) {
+        if (ownsWorkerThreadPool) {
             // shutdownNow() sends interrupt to all threads, unblocking take() and awaitResume()
-            workerExecutorService.shutdownNow();
+            workerThreadPool.shutdownNow();
         }
         // For client-provided pools: the shutdown flag is set. The client must
         // interrupt their pool externally (e.g. workerPool.shutdownNow()) for immediate stop.
@@ -164,8 +164,8 @@ public class TaskExecutor {
     }
 
     public int getActiveThreadCount() {
-        if (workerExecutorService instanceof ThreadPoolExecutor) {
-            return ((ThreadPoolExecutor) workerExecutorService).getActiveCount();
+        if (workerThreadPool instanceof ThreadPoolExecutor) {
+            return ((ThreadPoolExecutor) workerThreadPool).getActiveCount();
         }
         return 0;
     }
@@ -373,8 +373,7 @@ public class TaskExecutor {
                 LOGGER.info("(executeTask) [" + Thread.currentThread().getName() + "] Task " + task.getTaskId() + " completed successfully (" + chunksProcessed + " chunks processed)");
             }
 
-            // Check for starving tasks after completion
-            executionCoordinator.checkStarvation();
+            // Anti-starvation checks are now handled by control plane timer (not per-completion)
 
         } catch (Exception e) {
             // If this was a termination triggered internally (TaskTerminatedException wrapped in RuntimeException),
