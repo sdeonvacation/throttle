@@ -54,6 +54,7 @@ public class CpuMonitorDegradationTest {
         cpuLogger.addHandler(logHandler);
         Level originalLevel = cpuLogger.getLevel();
         cpuLogger.setLevel(Level.ALL);
+        cpuLogger.setUseParentHandlers(false);  // Bypass parent logger filtering
 
         try {
             // Create real CpuMonitor (will detect unavailable JMX and degrade gracefully)
@@ -64,13 +65,19 @@ public class CpuMonitorDegradationTest {
             MonitorState cpuState = cpuMonitor.evaluate();
             double cpuValue = cpuMonitor.getMetrics().getCurrentValue();
 
-            // On Sun/Oracle JVMs, CPU monitoring works (cpuValue > 0)
+            // On Sun/Oracle JVMs, CPU monitoring works (cpuValue >= 0)
             // On other JVMs or restrictive environments, CPU monitoring degrades (cpuValue == 0.0)
-            boolean cpuMonitoringAvailable = cpuValue > 0.0;
+            // Note: cpuValue == 0.0 can mean either:
+            //   1. CPU monitoring works but JVM is idle (legitimate 0%)
+            //   2. CPU monitoring is unavailable (always returns 0%)
+            // We detect degradation by checking if SEVERE logs were emitted
+            boolean cpuMonitoringDegraded = logHandler.getSevereCount() > 0;
 
-            if (!cpuMonitoringAvailable) {
+            if (cpuMonitoringDegraded) {
                 // CPU monitoring is degraded — verify system behavior
                 System.out.println("CPU monitoring unavailable (degraded mode) - validating fail-open behavior");
+                System.out.println("SEVERE log count: " + logHandler.getSevereCount());
+                System.out.println("SEVERE messages: " + logHandler.getSevereMessages());
 
                 // Verify CPU monitor is in NORMAL state (fail-open)
                 assertEquals("CPU monitor should be NORMAL when degraded (fail-open)",
@@ -86,7 +93,7 @@ public class CpuMonitorDegradationTest {
                                         msg.contains("getProcessCpuLoad() not available")));
 
             } else {
-                System.out.println("CPU monitoring is available on this JVM — test will verify normal operation");
+                System.out.println("CPU monitoring is available on this JVM (cpuValue=" + cpuValue + ") — test will verify normal operation");
             }
 
             // Create executor with both monitors
@@ -126,9 +133,10 @@ public class CpuMonitorDegradationTest {
             assertNotNull("Memory monitor should still be functional", memoryState);
 
             System.out.println("✓ System operates correctly with CPU monitor in state: " +
-                (cpuMonitoringAvailable ? "AVAILABLE" : "DEGRADED"));
+                (cpuMonitoringDegraded ? "DEGRADED" : "AVAILABLE"));
 
         } finally {
+            cpuLogger.setUseParentHandlers(true);  // Restore parent handler usage
             cpuLogger.removeHandler(logHandler);
             cpuLogger.setLevel(originalLevel);
         }
@@ -143,9 +151,26 @@ public class CpuMonitorDegradationTest {
 
         @Override
         public void publish(LogRecord record) {
+            if (record == null) {
+                return;
+            }
+
+            // Format the message with parameters to get the actual log message
+            String formattedMessage = getFormatter() != null
+                ? getFormatter().formatMessage(record)
+                : record.getMessage();
+
+            // If no formatter, manually format the message
+            if (formattedMessage.equals(record.getMessage()) && record.getParameters() != null) {
+                formattedMessage = java.text.MessageFormat.format(record.getMessage(), record.getParameters());
+            }
+
+            System.out.println("[TestLogHandler] Received log: level=" + record.getLevel() + ", message=" + formattedMessage);
+
             if (record.getLevel() == Level.SEVERE) {
                 severeCount.incrementAndGet();
-                severeMessages.add(record.getMessage());
+                severeMessages.add(formattedMessage);
+                System.out.println("[TestLogHandler] Captured SEVERE log: " + formattedMessage);
             }
         }
 

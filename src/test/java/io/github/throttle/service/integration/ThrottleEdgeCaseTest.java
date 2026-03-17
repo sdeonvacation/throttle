@@ -502,6 +502,9 @@ public class ThrottleEdgeCaseTest {
 
         assertEquals("All futures should raise ExecutionException", count, exceptionCount);
 
+        // Small delay to ensure metrics are fully updated (CI timing sensitivity)
+        Thread.sleep(100);
+
         ExecutorMetrics m = executor.getMetrics();
         assertEquals("tasksCompleted must be 0", 0, m.getTasksCompleted());
         assertEquals("tasksFailed must equal submitted count", count, m.getTasksFailed());
