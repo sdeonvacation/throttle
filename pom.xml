@@ -48,6 +48,19 @@
         <junit.version>4.13.2</junit.version>
         <gpg.skip>true</gpg.skip>
         <central.publish.skip>true</central.publish.skip>
+
+        <!-- Security scanning plugin versions -->
+        <spotbugs.version>4.9.8.2</spotbugs.version>
+        <findsecbugs.version>1.14.0</findsecbugs.version>
+        <dependency-check.version>12.2.0</dependency-check.version>
+        <dependency-check.skip>true</dependency-check.skip>
+        <nohttp.version>0.0.10</nohttp.version>
+        <nohttp.version>0.0.10</nohttp.version>
+        <centralPublishingMavenPluginVersion>0.10.0</centralPublishingMavenPluginVersion>
+        <mavenSourcePluginVersion>3.4.0</mavenSourcePluginVersion>
+        <mavenJavadocPluginVersion>3.12.0</mavenJavadocPluginVersion>
+        <mavenGpgPluginVersion>3.2.8</mavenGpgPluginVersion>
+        <mavenCompilerPluginVersion>3.15.0</mavenCompilerPluginVersion>
     </properties>
 
     <dependencies>
@@ -65,7 +78,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>${mavenCompilerPluginVersion}</version>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
@@ -79,7 +92,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>${mavenSourcePluginVersion}</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -94,7 +107,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>${mavenJavadocPluginVersion}</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -106,6 +119,85 @@
                 <configuration>
                     <doclint>none</doclint>
                 </configuration>
+            </plugin>
+
+            <!-- SpotBugs with FindSecBugs for security scanning -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Medium</threshold>
+                    <failOnError>false</failOnError>
+                    <xmlOutput>true</xmlOutput>
+                    <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${findsecbugs.version}</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>findsecbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- OWASP Dependency Check -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency-check.version}</version>
+                <configuration>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <skipSystemScope>true</skipSystemScope>
+                    <skipTestScope>true</skipTestScope>
+                    <!-- Skip by default for local builds, enable in CI -->
+                    <skip>${dependency-check.skip}</skip>
+                    <!-- NVD API configuration - API key via Maven server settings -->
+                    <nvdApiServerId>nvd-api</nvdApiServerId>
+                    <nvdApiDelay>4000</nvdApiDelay>
+                    <nvdMaxRetryCount>10</nvdMaxRetryCount>
+                    <nvdValidForHours>24</nvdValidForHours>
+                    <connectionTimeout>180000</connectionTimeout>
+                    <suppressionFiles>
+                        <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>dependency-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- NoHttp tool to prevent accidental http:// URLs -->
+            <!-- Note: Runs in CI with Maven Central access -->
+            <plugin>
+                <groupId>io.spring.nohttp</groupId>
+                <artifactId>nohttp-maven-plugin</artifactId>
+                <version>${nohttp.version}</version>
+                <executions>
+                    <execution>
+                        <id>nohttp-check</id>
+                        <phase>none</phase> <!-- Disabled locally, enabled in CI -->
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -129,7 +221,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.4</version>
+                        <version>${mavenGpgPluginVersion}</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -143,7 +235,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.5.0</version>
+                        <version>${centralPublishingMavenPluginVersion}</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>

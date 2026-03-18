@@ -1,0 +1,13 @@
+# NoHttp allowlist
+# This file contains URL patterns that are allowed to use http:// instead of https://
+# Only add URLs here if there's a legitimate reason they cannot use HTTPS
+
+# Maven Central repository (Maven uses http in some pom.xml schemas by default)
+http://maven.apache.org/POM/4.0.0
+http://maven.apache.org/xsd/maven-4.0.0.xsd
+
+# Apache License (standard reference URL)
+http://www.apache.org/licenses/LICENSE-2.0.txt
+
+# XML namespaces and schemas (these are identifiers, not actual URLs)
+http://www.w3.org/2001/XMLSchema-instance

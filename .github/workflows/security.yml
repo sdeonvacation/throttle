@@ -1,0 +1,101 @@
+name: "Security Scanning"
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  schedule:
+    # Run weekly security scans every Monday at 3:00 AM UTC
+    - cron: '0 3 * * 1'
+
+jobs:
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build project
+      run: mvn clean install -DskipTests
+
+    - name: Run FindSecBugs
+      run: mvn com.github.spotbugs:spotbugs-maven-plugin:check
+      continue-on-error: false
+
+    - name: Debug NVD API Key
+      run: |
+        if [ -z "$NVD_API_KEY" ]; then
+          echo "ERROR: NVD_API_KEY secret is not set or empty"
+          echo "Please add it at: Settings → Secrets and variables → Actions → Repository secrets"
+        else
+          echo "✓ NVD_API_KEY is set (length: ${#NVD_API_KEY} characters)"
+          echo "Testing NVD API with key..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "apiKey: $NVD_API_KEY" "https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=1")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✓ NVD API key is VALID (HTTP $HTTP_CODE)"
+          else
+            echo "✗ NVD API key appears INVALID (HTTP $HTTP_CODE)"
+            echo "Expected 200, got $HTTP_CODE"
+          fi
+        fi
+      env:
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+    - name: Run OWASP Dependency Check
+      run: |
+        if [ -n "$NVD_API_KEY" ]; then
+          echo "Running OWASP with NVD API key (key length: ${#NVD_API_KEY})"
+          # Create Maven settings with API key in server configuration
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+  <servers>
+    <server>
+      <id>nvd-api</id>
+      <password>${NVD_API_KEY}</password>
+    </server>
+  </servers>
+</settings>
+EOF
+          mvn org.owasp:dependency-check-maven:check \
+            -Ddependency-check.skip=false \
+            -DnvdApiServerId=nvd-api
+        else
+          echo "WARNING: NVD_API_KEY not set, running without API key (will be slow)"
+          mvn org.owasp:dependency-check-maven:check -Ddependency-check.skip=false
+        fi
+      env:
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      continue-on-error: false
+
+    - name: Run NoHttp Check
+      run: mvn io.spring.nohttp:nohttp-maven-plugin:check
+      continue-on-error: false
+
+    - name: Upload OWASP Dependency Check Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-check-report
+        path: target/dependency-check-report.html
+
+    - name: Upload SpotBugs Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: spotbugs-report
+        path: target/spotbugsXml.xml

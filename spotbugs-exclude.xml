@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+    <!-- Exclude CRLF injection warnings for controlled logging scenarios
+         These are false positives as we use parameterized logging and don't
+         accept user input directly in log messages -->
+    <Match>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+
+    <!-- Exclude serialization warnings for internal classes not meant for serialization -->
+    <Match>
+        <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+    </Match>
+
+    <!-- Allow using Exception in method signatures for library API flexibility -->
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+    </Match>
+
+    <!-- Allow RuntimeException in method signatures where appropriate -->
+    <Match>
+        <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+    </Match>
+
+    <!-- Exposed internal representation is intentional in some cases
+         These are internal core classes that share mutable objects by design
+         for coordination between components -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Or>
+            <Class name="io.github.throttle.service.base.AbstractChunkableTask"/>
+            <Class name="io.github.throttle.service.factory.ThrottleServiceFactory$Builder"/>
+            <Class name="io.github.throttle.service.core.ExecutionCoordinator"/>
+            <Class name="io.github.throttle.service.core.TaskExecutor"/>
+        </Or>
+    </Match>
+
+</FindBugsFilter>
