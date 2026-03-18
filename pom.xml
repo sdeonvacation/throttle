@@ -51,7 +51,7 @@
 
         <!-- Security scanning plugin versions -->
         <spotbugs.version>4.9.3.0</spotbugs.version>
-        <findsecbugs.version>1.13.0</findsecbugs.version>
+        <findsecbugs.version>1.14.0</findsecbugs.version>
         <dependency-check.version>9.0.9</dependency-check.version>
         <dependency-check.skip>true</dependency-check.skip>
         <nohttp.version>0.0.10</nohttp.version>
