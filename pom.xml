@@ -148,7 +148,7 @@
             <!-- OWASP Dependency Check -->
             <plugin>
                 <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
+<artifactId>dependency-check-maven</artifactId>
                 <version>${dependency-check.version}</version>
                 <configuration>
                     <failBuildOnCVSS>7</failBuildOnCVSS>
@@ -156,6 +156,8 @@
                     <skipTestScope>true</skipTestScope>
                     <!-- Skip by default for local builds, enable in CI with NVD API key -->
                     <skip>${dependency-check.skip}</skip>
+                    <!-- NVD API Key configuration -->
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <suppressionFiles>
                         <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
                     </suppressionFiles>
