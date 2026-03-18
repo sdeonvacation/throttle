@@ -1,0 +1,58 @@
+name: "Security Scanning"
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  schedule:
+    # Run weekly security scans every Monday at 3:00 AM UTC
+    - cron: '0 3 * * 1'
+
+jobs:
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build project
+      run: mvn clean install -DskipTests
+
+    - name: Run FindSecBugs
+      run: mvn com.github.spotbugs:spotbugs-maven-plugin:check
+      continue-on-error: false
+
+    - name: Run OWASP Dependency Check
+      run: mvn org.owasp:dependency-check-maven:check
+      continue-on-error: false
+
+    - name: Run NoHttp Check
+      run: mvn io.spring.nohttp:nohttp-maven-plugin:check
+      continue-on-error: false
+
+    - name: Upload OWASP Dependency Check Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-check-report
+        path: target/dependency-check-report.html
+
+    - name: Upload SpotBugs Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: spotbugs-report
+        path: target/spotbugsXml.xml

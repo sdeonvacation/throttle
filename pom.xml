@@ -48,6 +48,12 @@
         <junit.version>4.13.2</junit.version>
         <gpg.skip>true</gpg.skip>
         <central.publish.skip>true</central.publish.skip>
+
+        <!-- Security scanning plugin versions -->
+        <spotbugs.version>4.8.3</spotbugs.version>
+        <findsecbugs.version>1.13.0</findsecbugs.version>
+        <dependency-check.version>9.0.9</dependency-check.version>
+        <nohttp.version>0.0.10</nohttp.version>
     </properties>
 
     <dependencies>
@@ -106,6 +112,75 @@
                 <configuration>
                     <doclint>none</doclint>
                 </configuration>
+            </plugin>
+
+            <!-- SpotBugs with FindSecBugs for security scanning -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <failOnError>true</failOnError>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${findsecbugs.version}</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>findsecbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- OWASP Dependency Check -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency-check.version}</version>
+                <configuration>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <skipSystemScope>true</skipSystemScope>
+                    <skipTestScope>true</skipTestScope>
+                    <suppressionFiles>
+                        <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>dependency-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- NoHttp tool to prevent accidental http:// URLs -->
+            <!-- Note: Runs in CI with Maven Central access -->
+            <plugin>
+                <groupId>io.spring.nohttp</groupId>
+                <artifactId>nohttp-maven-plugin</artifactId>
+                <version>${nohttp.version}</version>
+                <executions>
+                    <execution>
+                        <id>nohttp-check</id>
+                        <phase>none</phase> <!-- Disabled locally, enabled in CI -->
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

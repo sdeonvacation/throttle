@@ -432,6 +432,17 @@ mvn test
 
 [Apache License 2.0](LICENSE)
 
+## Security
+
+Security is a top priority for Throttle. We use multiple layers of security scanning and testing:
+
+- **CodeQL**: Automated security scanning on every commit and PR
+- **FindSecBugs**: Static analysis for security vulnerabilities
+- **OWASP Dependency Check**: Continuous monitoring of dependencies for known vulnerabilities
+- **Dependabot**: Automated dependency updates for security patches
+
+For reporting security vulnerabilities, please see our [Security Policy](SECURITY.md).
+
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
