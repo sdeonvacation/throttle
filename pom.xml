@@ -156,8 +156,8 @@
                     <skipTestScope>true</skipTestScope>
                     <!-- Skip by default for local builds, enable in CI with NVD API key -->
                     <skip>${dependency-check.skip}</skip>
-                    <!-- NVD API Key configuration -->
-                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <!-- NVD API Key - pass via -Dnvd.api.key=YOUR_KEY -->
+                    <nvdApiKey>${nvd.api.key}</nvdApiKey>
                     <suppressionFiles>
                         <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
                     </suppressionFiles>

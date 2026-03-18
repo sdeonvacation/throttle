@@ -36,7 +36,7 @@ jobs:
       continue-on-error: false
 
     - name: Run OWASP Dependency Check
-      run: mvn org.owasp:dependency-check-maven:check -Ddependency-check.skip=false
+      run: mvn org.owasp:dependency-check-maven:check -Ddependency-check.skip=false -Dnvd.api.key=$NVD_API_KEY
       env:
         # NVD API Key should be set as a GitHub secret
         # Get your free API key at: https://nvd.nist.gov/developers/request-an-api-key
