@@ -12,7 +12,7 @@
     <description>Spring Boot application to test Throttle Service with real CPU/Memory load</description>
 
     <properties>
-        <spring-boot.version>3.5.3</spring-boot.version>
+        <spring-boot.version>4.0.4</spring-boot.version>
         <sonar.skip>true</sonar.skip>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
