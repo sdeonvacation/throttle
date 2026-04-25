@@ -1,0 +1,30 @@
+---
+config:
+  theme: dark
+  themeVariables:
+    primaryColor: '#1a1a2e'
+    primaryTextColor: '#ffffff'
+    primaryBorderColor: '#90CAF9'
+    lineColor: '#90CAF9'
+    background: '#0d1117'
+    nodeBorder: '#90CAF9'
+---
+flowchart TB
+    CHUNK(["**Process Chunk**"]) --> CHECK{"**CPU & Heap OK?**"}
+    CHECK -- "✅ NORMAL" --> NEXT(["**Next Chunk**"])
+    NEXT -- "more chunks" --> CHUNK
+    NEXT -- "done" --> DONE(["**Complete**"])
+    CHECK -- "🔥 HOT" --> PAUSE[/"**PAUSED**<br/>Worker blocks · Zero CPU"\]
+    PAUSE -. "monitors cool down" .-> RESUME(["**RESUMED**<br/>Heap below 50%"])
+    RESUME --> CHUNK
+
+    style CHUNK fill:#1565C0,stroke:#42A5F5,stroke-width:2px,color:#fff
+    style CHECK fill:#263238,stroke:#90CAF9,stroke-width:2px,color:#CFD8DC
+    style NEXT fill:#1a237e,stroke:#5C6BC0,stroke-width:2px,color:#fff
+    style DONE fill:#1B5E20,stroke:#66BB6A,stroke-width:3px,color:#fff
+    style PAUSE fill:#B71C1C,stroke:#EF5350,stroke-width:3px,color:#fff
+    style RESUME fill:#2E7D32,stroke:#81C784,stroke-width:3px,color:#fff
+    linkStyle 3 stroke:#66BB6A,stroke-width:2px,fill:none
+    linkStyle 4 stroke:#EF5350,stroke-width:3px,fill:none
+    linkStyle 5 stroke:#EF9A9A,stroke-width:2px,stroke-dasharray:6,fill:none
+    linkStyle 6 stroke:#81C784,stroke-width:2px,fill:none

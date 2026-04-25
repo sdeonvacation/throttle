@@ -1,0 +1,79 @@
+%%{init: {'theme': 'dark', 'sequence': {'mirrorActors': false, 'messageAlign': 'center'}}}%%
+
+sequenceDiagram
+    participant W1 as Worker 1
+    participant W2 as Worker 2
+    participant EC as Execution<br/>Coordinator
+    participant MC as Monitoring<br/>Coordinator
+    participant CPU as CPU Monitor<br/>(JMX)
+    participant MEM as Memory Monitor<br/>(JMX)
+    participant CP as Control Plane<br/>Thread
+
+    Note over W1,CP: 🟢 NORMAL OPERATION — Zero monitoring threads running
+
+    Note over W1: processChunk(tenants 1-50)
+    W1->>EC: pauseIfAnyMonitorHot()
+    activate EC
+    EC->>MC: sampleMonitors()
+    activate MC
+    Note over MC: synchronized + 100ms debounce
+    MC->>CPU: evaluate()
+    CPU-->>MC: NORMAL (45%)
+    MC->>MEM: evaluate()
+    MEM-->>MC: NORMAL (52%)
+    MC-->>EC: all NORMAL
+    deactivate MC
+    EC-->>W1: continue
+    deactivate EC
+    Note over W1: processChunk(tenants 51-100)
+
+    Note over W1,CP: 🔴 PRODUCTION TRAFFIC SPIKE — CPU rises
+
+    W1->>EC: pauseIfAnyMonitorHot()
+    activate EC
+    EC->>MC: sampleMonitors()
+    activate MC
+    MC->>CPU: evaluate()
+    CPU-->>MC: 🔥 HOT (85%)
+    Note over MC: Short-circuit: skip remaining monitors
+    MC-->>EC: HOT detected!
+    deactivate MC
+
+    rect rgb(183, 28, 28)
+        Note over W1,CP: ⏸ PAUSE TRIGGERED
+        EC->>W1: signal pause
+        EC->>W2: signal pause (interrupt if idle)
+        EC->>CP: start resume polling
+    end
+    deactivate EC
+
+    Note over W1: awaitResume() — blocked
+    Note over W2: awaitResume() — blocked
+    Note over W1,W2: Workers consume ZERO CPU while paused
+
+    loop Every 5 seconds (only while paused)
+        CP->>MC: sampleMonitors()
+        MC->>CPU: evaluate()
+        CPU-->>MC: HOT (78%)
+        MC->>MEM: evaluate()
+        MEM-->>MC: NORMAL (55%)
+        MC-->>CP: still HOT
+    end
+
+    CP->>MC: sampleMonitors()
+    MC->>CPU: evaluate()
+    CPU-->>MC: NORMAL (45%) ✅
+    MC->>MEM: evaluate()
+    MEM-->>MC: NORMAL (48%) ✅
+    MC-->>CP: all NORMAL
+
+    rect rgb(27, 94, 32)
+        Note over W1,CP: ▶ RESUME TRIGGERED
+        CP->>EC: executeResume()
+        EC->>W1: wake up
+        EC->>W2: wake up
+    end
+
+    Note over W1,CP: 🟢 NORMAL OPERATION RESUMES
+    W1->>EC: processChunk(tenants 101-150)
+    W2->>EC: processChunk(next task chunk)

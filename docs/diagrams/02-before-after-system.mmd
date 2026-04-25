@@ -1,0 +1,34 @@
+%%{init: {'theme': 'dark', 'themeVariables': {'lineColor': '#90CAF9'}}}%%
+
+flowchart TD
+    subgraph BEFORE["❌ BEFORE — Unthrottled Background Jobs"]
+        direction LR
+        B1["09:00<br/>Batch starts"]
+        B2["09:12<br/>Heap 78% ⚠️"]
+        B3["09:15<br/>Traffic spike"]
+        B4["09:17<br/>Heap 94%<br/>GC thrash"]
+        B5["09:18<br/>💀 OOM Killed"]
+
+        B1 --> B2 --> B3 --> B4 --> B5
+    end
+
+    subgraph AFTER["✅ AFTER — With Throttle"]
+        direction LR
+        A1["09:00<br/>Batch starts"]
+        A2["09:12<br/>Heap 68% ✅"]
+        A3["09:15<br/>Heap 70%<br/>⏸ PAUSE"]
+        A4["09:22<br/>Heap 48%<br/>▶️ RESUME"]
+        A5["09:35<br/>✅ Done<br/>0 incidents"]
+
+        A1 --> A2 --> A3 -.->|"workers wait"| A4 --> A5
+    end
+
+    BEFORE ~~~ AFTER
+
+    style BEFORE fill:#1a1a2e,stroke:#ff5252,stroke-width:2px,color:#fff
+    style AFTER fill:#1a1a2e,stroke:#4CAF50,stroke-width:2px,color:#fff
+    style B4 fill:#b71c1c,stroke:#ff5252,color:#fff
+    style B5 fill:#b71c1c,stroke:#ff5252,color:#fff
+    style A3 fill:#e65100,stroke:#ff9800,color:#fff
+    style A4 fill:#1b5e20,stroke:#66bb6a,color:#fff
+    style A5 fill:#0d47a1,stroke:#42a5f5,color:#fff
