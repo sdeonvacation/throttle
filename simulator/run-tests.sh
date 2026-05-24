@@ -87,6 +87,9 @@ if [ $# -eq 0 ]; then
     sleep 2
 
     run_test "12. Shutdown Under Load" "/run/shutdown-under-load"
+    sleep 2
+
+    run_test "13. Delegating ChunkableTask" "/run/delegating"
 
     echo -e "${BLUE}=====================================${NC}"
     echo "All tests completed!"
@@ -130,6 +133,9 @@ else
             ;;
         12|shutdown)
             run_test "Shutdown Under Load" "/run/shutdown-under-load"
+            ;;
+        13|delegating)
+            run_test "Delegating ChunkableTask" "/run/delegating"
             ;;
         all)
             curl -s -X POST "$BASE_URL/run-all" | python3 -m json.tool
@@ -200,8 +206,9 @@ else
             echo "  9 or overflow       - Queue Overflow (edge case)"
             echo "  10 or failing       - Failing Tasks (edge case)"
             echo "  11 or cascade       - Cascade Kill (edge case)"
-            echo "  12 or shutdown      - Shutdown Under Load (edge case)"
-            echo "  all                 - Run all tests (with full results)"
+  echo "  12 or shutdown      - Shutdown Under Load (edge case)"
+echo "  13 or delegating    - Delegating ChunkableTask"
+  echo "  all                 - Run all tests (with full results)"
             echo ""
             echo "Load Control:"
             echo "  cpu-start [%] [ms]  - Start CPU load (default: 80% for 10s)"

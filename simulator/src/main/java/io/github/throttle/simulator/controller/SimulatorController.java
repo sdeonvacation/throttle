@@ -196,6 +196,9 @@ public class SimulatorController {
                 case "shutdown-under-load":
                 case "shutdown":
                     return scenarioRunner.runShutdownUnderLoadTest();
+                case "delegating-chunkabletask":
+                case "delegating":
+                    return scenarioRunner.runDelegatingChunkableTaskTest();
                 default:
                     return scenarioRunner.runNormalOperationTest();
             }

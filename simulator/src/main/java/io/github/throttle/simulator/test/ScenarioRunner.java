@@ -9,6 +9,7 @@ import io.github.throttle.simulator.load.MemoryLoadGenerator;
 import io.github.throttle.simulator.service.MonitoringService;
 import io.github.throttle.simulator.monitor.SystemMonitor;
 import io.github.throttle.simulator.monitor.MonitoringStats;
+import io.github.throttle.simulator.tasks.DelegatingSimulatedTask;
 import io.github.throttle.simulator.tasks.FailingSimulatedTask;
 import io.github.throttle.simulator.tasks.SimulatedTask;
 import org.slf4j.Logger;
@@ -1155,6 +1156,87 @@ public class ScenarioRunner {
     }
 
     /**
+     * Scenario 13: DelegatingChunkableTask + ChunkProcessor pattern.
+     * Verifies that tasks built with the processor delegation pattern work identically
+     * to tasks that extend {@code AbstractChunkableTask} directly.
+     *
+     * Success criteria:
+     *   - All delegating tasks complete.
+     *   - onComplete callback fires for every task.
+     *   - No tasks fail or are killed.
+     *   - Metrics match submitted task count.
+     */
+    public TestResult runDelegatingChunkableTaskTest() {
+        log.info("=== Running Scenario 13: DelegatingChunkableTask + ChunkProcessor ===");
+
+        TestResult result = new TestResult("Delegating ChunkableTask");
+        ThrottleService executor = null;
+
+        try {
+            executor = ThrottleServiceFactory.builder()
+                .workerThreadPool(Executors.newFixedThreadPool(4))
+                .queueCapacity(50)
+                .cpuMonitor(90, 70)
+                .memoryMonitor(90, 70)
+                .maxPauseCount(5)
+                .taskTerminationEnabled(false)
+                .build();
+
+            startMonitoring(executor);
+
+            int taskCount = 20;
+            List<DelegatingSimulatedTask> wrappers = new ArrayList<>();
+            List<Future<Void>> futures = new ArrayList<>();
+            long startTime = System.currentTimeMillis();
+
+            for (int i = 0; i < taskCount; i++) {
+                Priority priority = i < 5 ? Priority.HIGH : i < 12 ? Priority.MEDIUM : Priority.LOW;
+                DelegatingSimulatedTask wrapper = new DelegatingSimulatedTask(
+                    "delegating-task-" + i, 50, priority, 10, 10);
+                wrappers.add(wrapper);
+                futures.add(executor.submit(wrapper.getTask()));
+            }
+
+            // Wait for all tasks to complete
+            for (Future<Void> f : futures) {
+                f.get(60, TimeUnit.SECONDS);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            ExecutorMetrics metrics = executor.getMetrics();
+
+            // Verify all onComplete callbacks fired
+            long callbacksFired = wrappers.stream().filter(DelegatingSimulatedTask::isCompleted).count();
+
+            result.setDuration(duration);
+            result.setTasksCompleted(metrics.getTasksCompleted());
+            result.setTasksFailed(metrics.getTasksFailed());
+            result.setTasksKilled(metrics.getTasksKilled());
+            result.setPauseCount(metrics.getPauseCount());
+
+            boolean allCompleted       = metrics.getTasksCompleted() == taskCount;
+            boolean noFailures         = metrics.getTasksFailed() == 0;
+            boolean allCallbacksFired  = callbacksFired == taskCount;
+
+            result.setSuccess(allCompleted && noFailures && allCallbacksFired);
+
+            log.info("Delegating task test done: {}ms, completed={}, callbacks={}/{}, success={}",
+                duration, metrics.getTasksCompleted(), callbacksFired, taskCount, result.isSuccess());
+
+        } catch (Exception e) {
+            log.error("Delegating task test failed", e);
+            result.setSuccess(false);
+            result.setError(e.getMessage());
+        } finally {
+            stopMonitoring();
+            if (executor != null) executor.shutdown();
+            result.setMonitoringStats(systemMonitor.getStats());
+        }
+
+        return result;
+    }
+
+    /**
      * Run all test scenarios.
      */
     public List<TestResult> runAllTests() {
@@ -1178,13 +1260,15 @@ public class ScenarioRunner {
         String[] testNames = {
             "Normal Operation", "Resource Spike", "Sustained Load", "Memory Pressure",
             "Task Killing", "Priority Scheduling", "Stress Test", "Flapping Monitor",
-            "Queue Overflow", "Failing Tasks", "Cascade Kill", "Shutdown Under Load"
+            "Queue Overflow", "Failing Tasks", "Cascade Kill", "Shutdown Under Load",
+            "Delegating ChunkableTask"
         };
 
         java.util.function.Supplier<TestResult>[] testMethods = new java.util.function.Supplier[] {
             this::runNormalOperationTest, this::runResourceSpikeTest, this::runSustainedLoadTest, this::runMemoryPressureTest,
             this::runTaskKillingTest, this::runPrioritySchedulingTest, this::runStressTest, this::runFlappingMonitorTest,
-            this::runQueueOverflowTest, this::runFailingTasksTest, this::runCascadeKillTest, this::runShutdownUnderLoadTest
+            this::runQueueOverflowTest, this::runFailingTasksTest, this::runCascadeKillTest, this::runShutdownUnderLoadTest,
+            this::runDelegatingChunkableTaskTest
         };
 
         for (int i = 0; i < testNames.length; i++) {

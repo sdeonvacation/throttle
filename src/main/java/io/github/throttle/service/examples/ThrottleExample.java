@@ -2,6 +2,7 @@ package io.github.throttle.service.examples;
 
 import io.github.throttle.service.api.*;
 import io.github.throttle.service.base.AbstractChunkableTask;
+import io.github.throttle.service.base.DelegatingChunkableTask;
 import io.github.throttle.service.base.ExecutorMetrics;
 import io.github.throttle.service.base.Priority;
 import io.github.throttle.service.base.TaskTerminatedException;
@@ -95,6 +96,48 @@ public class ThrottleExample {
                                  task.getPauseCount() + " pauses");
             }
         }
+
+        // --- Pattern 2: DelegatingChunkableTask + ChunkProcessor ---
+        // Instead of extending AbstractChunkableTask, implement ChunkProcessor and
+        // wrap it in DelegatingChunkableTask. This decouples business logic from the
+        // task framework.
+        System.out.println("\n--- Pattern 2: DelegatingChunkableTask + ChunkProcessor ---");
+
+        List<String> delegatedItems = createItems("DELEGATED", 50);
+
+        ChunkProcessor<String> processor = new ChunkProcessor<>() {
+            @Override
+            public void processChunk(List<String> chunk) throws Exception {
+                System.out.println(Thread.currentThread().getName() +
+                    " [ChunkProcessor] processing chunk of " + chunk.size() + " items");
+                for (String item : chunk) {
+                    Thread.sleep(50); // simulate work
+                }
+            }
+
+            @Override
+            public void onComplete(String taskId) {
+                System.out.println("✓ [ChunkProcessor] Task " + taskId + " completed");
+            }
+
+            @Override
+            public void onError(String taskId, Throwable error) {
+                System.err.println("✗ [ChunkProcessor] Task " + taskId + " failed: " + error.getMessage());
+            }
+
+            @Override
+            public void onCancel(String taskId) {
+                System.out.println("⊘ [ChunkProcessor] Task " + taskId + " cancelled");
+            }
+        };
+
+        Future<Void> delegatedTask = executor.submit(
+            new DelegatingChunkableTask<>("processor-task", delegatedItems, Priority.MEDIUM, 10, processor)
+        );
+
+        // Wait for the delegated task to complete
+        delegatedTask.get();
+        System.out.println("Delegated task completed via ChunkProcessor pattern");
 
         // Shutdown
         System.out.println("\nShutting down executor...");
