@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See `INTELLIGENT_FEATURES_PROPOSAL.md` for detailed enhancement plans.
 
+## [1.0.2] - 2026-05-24
+
+### Added
+- `ChunkProcessor<T>` interface (`service.api`) — strategy interface decoupling chunk processing logic from the task framework. Callers implement `processChunk(List<T>)` plus optional default lifecycle hooks: `onComplete(taskId)`, `onError(taskId, Throwable)`, `onCancel(taskId)`.
+- `DelegatingChunkableTask<T>` (`service.base`) — concrete `final` class extending `AbstractChunkableTask` that wraps a `ChunkProcessor` strategy. Eliminates the need to subclass `AbstractChunkableTask` for straightforward use cases.
+- Simulator `DelegatingSimulatedTask` demonstrating the processor delegation pattern.
+- Simulator Scenario 13 (Delegating ChunkableTask) — validates end-to-end task lifecycle via `ChunkProcessor`; all 13 simulator scenarios pass.
+
 ## [1.0.1] - 2026-03-17
 
 ### Fixed
