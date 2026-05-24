@@ -77,7 +77,7 @@ That's it. Your background jobs now automatically pause during traffic spikes an
 <dependency>
     <groupId>io.github.sdeonvacation</groupId>
     <artifactId>throttle</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -102,8 +102,68 @@ executor.submit(new AbstractChunkableTask<Order>(orders, Priority.LOW, 100) {
     }
 });
 
+// Or with ChunkProcessor — no subclassing required:
+ChunkProcessor<Order> processor = chunk -> chunk.forEach(this::processOrder);
+executor.submit(new DelegatingChunkableTask<>("daily-report", orders, Priority.LOW, 100, processor));
+
 // 3. Your app stays responsive. Users are happy. You sleep through the night.
 ```
+
+## Two Ways to Define Tasks
+
+### Option 1: Extend AbstractChunkableTask
+
+Full control — override lifecycle callbacks, add fields, track state.
+
+```java
+public class OrderReportTask extends AbstractChunkableTask<Order> {
+    public OrderReportTask(List<Order> orders) {
+        super("order-report", orders, Priority.LOW, 100);
+    }
+
+    @Override
+    public void processChunk(List<Order> chunk) {
+        chunk.forEach(this::processOrder);
+    }
+
+    @Override
+    public void onComplete() {
+        log.info("Report generation finished");
+    }
+}
+```
+
+### Option 2: Implement ChunkProcessor (no subclassing)
+
+Lightweight — implement a strategy interface and wrap it. Best for simple tasks or when you want to keep business logic free of framework coupling.
+
+```java
+// Lambda for simple cases
+ChunkProcessor<Order> processor = chunk -> chunk.forEach(this::processOrder);
+executor.submit(new DelegatingChunkableTask<>("order-report", orders, Priority.LOW, 100, processor));
+
+// Anonymous class for lifecycle hooks
+ChunkProcessor<Order> processor = new ChunkProcessor<>() {
+    @Override
+    public void processChunk(List<Order> chunk) {
+        chunk.forEach(this::processOrder);
+    }
+
+    @Override
+    public void onComplete(String taskId) {
+        log.info("Task {} finished", taskId);
+    }
+
+    @Override
+    public void onError(String taskId, Throwable error) {
+        log.error("Task {} failed: {}", taskId, error.getMessage());
+    }
+};
+
+executor.submit(new DelegatingChunkableTask<>("order-report", orders, Priority.LOW, 100, processor));
+```
+
+Both approaches are fully supported and interchangeable.
 
 ## How It Works
 
