@@ -52,7 +52,7 @@
         <!-- Security scanning plugin versions -->
         <spotbugs.version>4.9.8.2</spotbugs.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
-        <dependency-check.version>12.2.0</dependency-check.version>
+        <dependency-check.version>12.2.2</dependency-check.version>
         <dependency-check.skip>true</dependency-check.skip>
         <nohttp.version>0.0.10</nohttp.version>
         <nohttp.version>0.0.10</nohttp.version>
