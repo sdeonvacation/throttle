@@ -400,7 +400,7 @@ mvn spring-boot:run
 ```
 
 <p align="center">
-  <img src="docs/images/dashboard-preview.png" alt="Simulator Dashboard" width="700">
+  <img src="docs/images/throttle-demo.gif" alt="Throttle Simulator Demo" width="700">
 </p>
 
 ## Full Documentation
