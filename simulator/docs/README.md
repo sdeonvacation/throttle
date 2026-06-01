@@ -9,7 +9,7 @@ The simulator provides end-to-end testing of the Throttle Service by:
 - Creating realistic task workloads with `SimulatedTask` and `FailingSimulatedTask`
 - Testing pause/resume behaviour under real resource pressure
 - Validating task killing, priority scheduling, queue overflow, and fault tolerance
-- Running 12 scenarios — 7 positive and 5 negative/edge-case
+- Running 13 scenarios — 7 positive, 5 negative/edge-case, 1 API pattern demo
 
 ## Starting the Application
 
@@ -26,16 +26,22 @@ Open the dashboard at **http://localhost:8080/api/simulator/dashboard**.
 ## Features
 
 ### Real-Time Dashboard
-- **Live updates** via WebSocket (500ms refresh)
-- **System resources**: CPU and memory with colour-coded progress bars
-- **Executor status**: queue size, active threads, pause state
-- **Task metrics**: completed, failed, killed counts
+- **Glassmorphism CSS theme** with CSS variable design system
+- **Live updates** via WebSocket with RAF-batched coalescing (500ms refresh)
+- **Animated SVG gauges** for CPU/Memory with stroke-dashoffset animation
+- **Sparkline charts** (Chart.js) with 60-point history trending
+- **SVG executor flow visualization** with animated queue→threads→output dots
+- **Particle system canvas** background with floating effects
+- **Material-style ripple effects** on buttons
+- **Responsive grid layout** (12 columns, 2 breakpoints) with staggered card animations
+- **System resources**: CPU and memory gauges, executor status (queue, threads, pause)
+- **Task metrics**: completed, failed, killed, paused counts
 
 ### Independent Load Control
 - **CPU Load Generator**: adjustable target (10–100%), configurable duration, start/stop independently
 - **Memory Load Generator**: adjustable target (10–90% of heap), configurable duration, automatic release
 
-### 12 Test Scenarios
+### 13 Test Scenarios
 - One-click execution from the dashboard
 - Results shown in real time with activity log
 
@@ -47,10 +53,10 @@ Open the dashboard at **http://localhost:8080/api/simulator/dashboard**.
 
 | # | Name | Endpoint | Purpose |
 |---|------|----------|---------|
-| 1 | Normal Operation | `normal-operation` | Baseline throughput, no resource pressure |
-| 2 | Resource Spike | `resource-spike` | Pause/resume when CPU spikes to 80% for 5s |
-| 3 | Sustained Load | `sustained-load` | Behaviour under continuous 60% CPU for 15s |
-| 4 | Memory Pressure | `memory-pressure` | Pause on 70% heap allocation for 8s |
+| 1 | Normal Operation | `normal-operation` | Baseline throughput, no resource pressure (2 workers) |
+| 2 | Resource Spike | `resource-spike` | CPU spikes to 80% for 10s, pause/resume during load (2 workers) |
+| 3 | Sustained Load | `sustained-load` | Continuous 60% CPU load for 20s with 20 tasks (2 workers) |
+| 4 | Memory Pressure | `memory-pressure` | Memory allocation to 70% for 12s with 25 tasks (2 workers) |
 | 5 | Task Killing | `task-killing` | Tasks killed after exceeding `maxPauseCount=2` via 4 memory spikes |
 | 6 | Priority Scheduling | `priority-scheduling` | HIGH priority tasks complete before LOW |
 | 7 | Stress Test | `stress-test` | 100 tasks, 8 workers, mixed priorities |
@@ -64,6 +70,7 @@ Open the dashboard at **http://localhost:8080/api/simulator/dashboard**.
 | 10 | Failing Tasks | `failing-tasks` | Half of tasks throw in `processChunk()` — workers survive, healthy tasks complete, metrics accurate |
 | 11 | Cascade Kill | `cascade-kill` | All 3 running tasks killed by 3 CPU spikes (`maxPauseCount=2`) — executor recovers with fresh tasks |
 | 12 | Shutdown Under Load | `shutdown-under-load` | `shutdown()` called with 15 tasks in flight — `awaitTermination(10s)` returns without deadlock |
+| 13 | DelegatingChunkableTask | `delegating-chunkabletask` / `delegating` | 20 tasks using `DelegatingChunkableTask` + `ChunkProcessor` pattern; verifies all `onComplete` callbacks fire |
 
 ---
 
@@ -74,7 +81,7 @@ Open the dashboard at **http://localhost:8080/api/simulator/dashboard**.
 ```bash
 cd simulator
 
-# Run all 12 scenarios sequentially
+# Run all 13 scenarios sequentially
 ./run-tests.sh
 
 # Run a specific scenario by number or alias
@@ -94,6 +101,8 @@ cd simulator
 ./run-tests.sh cascade
 ./run-tests.sh 12         # Shutdown Under Load
 ./run-tests.sh shutdown
+./run-tests.sh 13         # DelegatingChunkableTask
+./run-tests.sh delegating
 
 # Run all tests and get full JSON results
 ./run-tests.sh all
@@ -115,6 +124,7 @@ curl -X POST http://localhost:8080/api/simulator/run/queue-overflow
 curl -X POST http://localhost:8080/api/simulator/run/failing-tasks
 curl -X POST http://localhost:8080/api/simulator/run/cascade-kill
 curl -X POST http://localhost:8080/api/simulator/run/shutdown-under-load
+curl -X POST http://localhost:8080/api/simulator/run/delegating-chunkabletask
 
 # Run all tests
 curl -X POST http://localhost:8080/api/simulator/run-all
@@ -153,25 +163,31 @@ curl http://localhost:8080/api/simulator/status
 ## Scenario Details
 
 ### 1. Normal Operation
+- **Config**: 2 workers, `hysteresis(1s)`, `hotMonitoringDebounceInterval(500ms)`, `coldMonitoringInterval(3s)`
 - **Tasks**: 50 tasks (10 HIGH, 20 MEDIUM, 20 LOW), 100 items/task, chunk size 20
 - **Expected**: All 50 tasks complete, `pauseCount = 0`
 
 ### 2. Resource Spike
+- **Config**: 2 workers, thresholds: cpu(70,45) memory(65,45), `hysteresis(1s)`, `hotMonitoringDebounceInterval(500ms)`, `coldMonitoringInterval(2s)`
 - **Tasks**: 30 tasks (300 items/task, chunk 15)
-- **Load**: 80% CPU spike for 5s after 1s warmup
+- **Load**: CPU spike to 80% for 10s after 1s warmup
 - **Expected**: Tasks complete, `pauseCount > 0`
 
 ### 3. Sustained Load
-- **Tasks**: 20 tasks submitted during sustained 60% CPU load for 15s
+- **Config**: 2 workers, `hysteresis(1s)`, `hotMonitoringDebounceInterval(500ms)`
+- **Tasks**: 20 tasks (150 items/task, chunk 20) submitted during sustained load
+- **Load**: Continuous 60% CPU for 20s
 - **Expected**: Tasks complete with multiple pauses
 
 ### 4. Memory Pressure
-- **Tasks**: 25 tasks
-- **Load**: Heap allocated to 70% for 8s
+- **Config**: 2 workers, thresholds: cpu(80,50) memory(65,45), `hysteresis(1s)`, `hotMonitoringDebounceInterval(500ms)`, `coldMonitoringInterval(2s)`
+- **Tasks**: 25 tasks (100 items/task, chunk 20)
+- **Load**: Heap allocated to 70% for 12s after 2s warmup
 - **Expected**: Tasks pause during memory pressure, resume after release
 
 ### 5. Task Killing
-- **Tasks**: 5 very long tasks (1000 items, chunk 5), pool size 3, `maxPauseCount=2`
+- **Config**: 3 workers, thresholds cpu(70,40) memory(60,40), `hysteresis(1s)`, `maxPauseCount=2`
+- **Tasks**: 5 very long tasks (1000 items, chunk 5), pool size 3
 - **Load**: 4 memory spikes (95% heap for 8s, 5s cooldown between)
 - **Expected**: At least 1 task killed (`TaskTerminatedException`); `tasksKilled > 0`
 
@@ -206,6 +222,12 @@ curl http://localhost:8080/api/simulator/status
 - **Tasks**: 15 tasks submitted, then `shutdown()` called after 300ms
 - **Expected**: `awaitTermination(10s)` returns `true`; no deadlock; `isShutdown() = true`
 
+### 13. DelegatingChunkableTask *(API pattern)*
+- **Config**: 4 workers, no resource pressure, thresholds cpu(90,70) memory(90,70), `taskTerminationEnabled=false`
+- **Tasks**: 20 tasks via `DelegatingSimulatedTask` wrapper (50 items/task, chunk 10)
+- **Purpose**: Verify the `DelegatingChunkableTask` + `ChunkProcessor` delegation pattern works identically to direct `AbstractChunkableTask` extension
+- **Expected**: All 20 tasks complete, all `onComplete` callbacks fire, `tasksCompleted = 20`, `tasksFailed = 0`, `tasksKilled = 0`
+
 ---
 
 ## Response Format
@@ -216,6 +238,7 @@ Each scenario returns a JSON response:
 {
   "success": true,
   "duration": 12500,
+  "tasksSubmitted": 50,
   "tasksCompleted": 50,
   "tasksFailed": 0,
   "tasksKilled": 0,
@@ -228,8 +251,8 @@ The `run-all` endpoint returns a summary:
 
 ```json
 {
-  "totalTests": 12,
-  "passed": 12,
+  "totalTests": 13,
+  "passed": 13,
   "results": [ ... ]
 }
 ```
@@ -242,22 +265,37 @@ The simulator uses the Throttle library directly. Each scenario creates a fresh 
 
 ```java
 ThrottleService executor = ThrottleServiceFactory.builder()
-    .workerThreadPool(Executors.newFixedThreadPool(5))  // client provides pool
+    .workerThreadPool(Executors.newFixedThreadPool(2))  // client provides pool (default: 2)
     .queueCapacity(100)
     .cpuMonitor(75, 50)          // hot=75%, cold=50%
     .memoryMonitor(70, 50)
-    .hysteresis(Duration.ofSeconds(10))
-    .coldMonitoringInterval(Duration.ofSeconds(5))
-    .hotMonitoringDebounceInterval(Duration.ofMillis(100))
+    .hysteresis(Duration.ofSeconds(1))
+    .coldMonitoringInterval(Duration.ofSeconds(3))
+    .hotMonitoringDebounceInterval(Duration.ofMillis(500))
     .maxPauseCount(5)
     .taskTerminationEnabled(true)
     .build();
 ```
 
+### Task Submission Patterns
+
+**Direct Extension (scenarios 1–12):**
+```java
+SimulatedTask task = new SimulatedTask("id", itemCount, priority, chunkSize, delayMs);
+executor.submit(task);  // extends AbstractChunkableTask
+```
+
+**Delegation Pattern (scenario 13):**
+```java
+DelegatingSimulatedTask wrapper = new DelegatingSimulatedTask("id", itemCount, priority, chunkSize, delayMs);
+executor.submit(wrapper.getTask());  // wraps AbstractChunkableTask via DelegatingChunkableTask + ChunkProcessor
+```
+
 Key points:
-- **No `poolSize` config** — the client provides an `ExecutorService` (or omits it for a default pool of size 2)
+- **No `poolSize` config** — the client provides an `ExecutorService` (or omits it for default pool of size 2)
 - **Each scenario creates its own executor** — full isolation between tests
 - **`TaskTerminatedException`** is thrown when `pauseCount > maxPauseCount` — clients handle it in `onError()`
+- **Delegation pattern** (`DelegatingChunkableTask` + `ChunkProcessor`) is equivalent to direct extension
 
 ---
 
@@ -279,15 +317,17 @@ simulator/
 │   │   └── MonitoringStats.java        # Min/max/avg statistics
 │   ├── service/
 │   │   ├── MonitoringService.java      # Pushes metrics to dashboard via WebSocket
-│   │   └── LoadControlService.java     # Tracks CPU/memory load active state
+│   │   ├── LoadControlService.java     # Tracks CPU/memory load active state
+│   │   └── BackgroundLoadService.java  # Baseline JVM load generator for realistic dashboard demos
 │   ├── tasks/
 │   │   ├── SimulatedTask.java          # Normal task (sleeps per item to simulate work)
-│   │   └── FailingSimulatedTask.java   # Task that throws on first chunk (scenario 10)
+│   │   ├── FailingSimulatedTask.java   # Task that throws on first chunk (scenario 10)
+│   │   └── DelegatingSimulatedTask.java # Demonstrates DelegatingChunkableTask + ChunkProcessor pattern (scenario 13)
 │   └── test/
-│       ├── ScenarioRunner.java         # 12 scenario implementations
-│       └── TestResult.java             # Scenario result DTO
+│       ├── ScenarioRunner.java         # 13 scenario implementations
+│       └── TestResult.java             # Scenario result DTO (includes tasksSubmitted)
 └── src/main/resources/
-    ├── templates/dashboard.html        # Thymeleaf dashboard template
+    ├── templates/dashboard.html        # Glassmorphic dashboard with SVG gauges, sparklines, particle canvas
     └── application.properties
 ```
 

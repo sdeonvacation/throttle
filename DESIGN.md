@@ -109,6 +109,16 @@ DataProcessingTask for 100 items:
 - **Granular**: Control how often pause checks occur
 - **No work lost**: Each chunk completes before pausing
 
+**Two Ways to Define a Chunkable Task:**
+
+1. **Inheritance**: Extend `AbstractChunkableTask<T>` and override `processChunk(List<T> chunk)`. Full control over task lifecycle.
+
+2. **Composition**: Use `DelegatingChunkableTask<T>` with a `ChunkProcessor<T>` strategy. No subclassing required. Wrap your chunk logic in the functional interface; optional `onComplete(String taskId)` and `onError(String taskId, Throwable error)` callbacks via default methods. Same pause/resume/kill semantics as `AbstractChunkableTask`.
+
+Example: `new DelegatingChunkableTask<>(taskId, items, Priority.HIGH, chunkSize, chunk -> processChunk(chunk))`
+
+Both approaches are first-class; choose based on code organization preference.
+
 ### 2.2 Thread-Task Binding
 
 **Concept**: Each worker thread processes ONE task from start to finish.
