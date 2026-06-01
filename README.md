@@ -418,17 +418,3 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 [Apache 2.0](LICENSE)
 
 ---
-
-<p align="center">
-  <b>If Throttle saved you from a 2am page, consider giving it a ⭐</b>
-</p>
-
-<p align="center">
-  <a href="https://github.com/sdeonvacation/throttle">
-    <img src="https://img.shields.io/github/stars/sdeonvacation/throttle?style=social" alt="GitHub stars">
-  </a>
-</p>
-
-<p align="center">
-  Made by <a href="https://www.linkedin.com/in/mauryasam">Sambhrant Maurya</a>
-</p>
