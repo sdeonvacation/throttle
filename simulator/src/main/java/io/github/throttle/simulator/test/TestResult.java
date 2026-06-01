@@ -9,6 +9,7 @@ public class TestResult {
     private final String scenarioName;
     private boolean success;
     private long duration;
+    private long tasksSubmitted;
     private long tasksCompleted;
     private long tasksFailed;
     private long tasksKilled;
@@ -25,6 +26,8 @@ public class TestResult {
     public void setSuccess(boolean success) { this.success = success; }
     public long getDuration() { return duration; }
     public void setDuration(long duration) { this.duration = duration; }
+    public long getTasksSubmitted() { return tasksSubmitted; }
+    public void setTasksSubmitted(long tasksSubmitted) { this.tasksSubmitted = tasksSubmitted; }
     public long getTasksCompleted() { return tasksCompleted; }
     public void setTasksCompleted(long tasksCompleted) { this.tasksCompleted = tasksCompleted; }
     public long getTasksFailed() { return tasksFailed; }

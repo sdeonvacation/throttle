@@ -57,11 +57,14 @@ public class ScenarioRunner {
         try {
             // Create executor
             executor = ThrottleServiceFactory.builder()
-                .workerThreadPool(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(2))
                 .queueCapacity(100)
                 .cpuMonitor(75, 50)
                 .memoryMonitor(70, 50)
                 .maxPauseCount(5)
+                .hysteresis(Duration.ofSeconds(1))
+                .hotMonitoringDebounceInterval(Duration.ofMillis(500))
+                .coldMonitoringInterval(Duration.ofSeconds(3))
                 .build();
 
             // Start monitoring with this executor
@@ -87,6 +90,7 @@ public class ScenarioRunner {
             // Collect results
             ExecutorMetrics metrics = executor.getMetrics();
             result.setDuration(duration);
+            result.setTasksSubmitted(50);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -124,11 +128,14 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerThreadPool(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(2))
                 .queueCapacity(100)
                 .cpuMonitor(70, 45)
                 .memoryMonitor(65, 45)
                 .maxPauseCount(5)
+                .hysteresis(Duration.ofSeconds(1))
+                .hotMonitoringDebounceInterval(Duration.ofMillis(500))
+                .coldMonitoringInterval(Duration.ofSeconds(2))
                 .build();
 
             startMonitoring(executor);
@@ -145,10 +152,10 @@ public class ScenarioRunner {
 
             // Wait shorter time before spike - tasks should still be processing
             Thread.sleep(1000);
-            log.info("Generating CPU spike (80% for 5 seconds)...");
+            log.info("Generating CPU spike (80% for 10 seconds)...");
 
             // Start CPU spike
-            cpuLoader.generateLoad(80, 5000);
+            cpuLoader.generateLoad(80, 10000);
 
             // Wait for spike to complete
             cpuLoader.await();
@@ -168,6 +175,7 @@ public class ScenarioRunner {
             // Collect results
             ExecutorMetrics metrics = executor.getMetrics();
             result.setDuration(duration);
+            result.setTasksSubmitted(30);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -213,11 +221,13 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerThreadPool(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(2))
                 .queueCapacity(100)
                 .cpuMonitor(75, 50)
                 .memoryMonitor(70, 50)
                 .maxPauseCount(10)
+                .hysteresis(Duration.ofSeconds(1))
+                .hotMonitoringDebounceInterval(Duration.ofMillis(500))
                 .build();
 
             startMonitoring(executor);
@@ -228,7 +238,7 @@ public class ScenarioRunner {
             loadThread = new Thread(() -> {
                 try {
                     log.info("Starting sustained CPU load...");
-                    cpuLoader.generateLoad(60, 15000);
+                    cpuLoader.generateLoad(60, 20000);
                 } catch (Exception e) {
                     log.error("Load generation failed", e);
                 }
@@ -254,6 +264,7 @@ public class ScenarioRunner {
 
             ExecutorMetrics metrics = finalExecutor.getMetrics();
             result.setDuration(duration);
+            result.setTasksSubmitted(20);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -301,11 +312,14 @@ public class ScenarioRunner {
 
         try {
             executor = ThrottleServiceFactory.builder()
-                .workerThreadPool(Executors.newFixedThreadPool(5))
+                .workerThreadPool(Executors.newFixedThreadPool(2))
                 .queueCapacity(100)
                 .cpuMonitor(80, 50)
                 .memoryMonitor(65, 45)
                 .maxPauseCount(10)
+                .hysteresis(Duration.ofSeconds(1))
+                .hotMonitoringDebounceInterval(Duration.ofMillis(500))
+                .coldMonitoringInterval(Duration.ofSeconds(2))
                 .build();
 
             startMonitoring(executor);
@@ -315,7 +329,7 @@ public class ScenarioRunner {
                 try {
                     Thread.sleep(2000);
                     log.info("Allocating memory...");
-                    memoryLoader.generateLoad(70, 8000);
+                    memoryLoader.generateLoad(70, 12000);
                 } catch (Exception e) {
                     log.error("Memory allocation failed", e);
                 }
@@ -340,6 +354,7 @@ public class ScenarioRunner {
 
             ExecutorMetrics metrics = executor.getMetrics();
             result.setDuration(duration);
+            result.setTasksSubmitted(25);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -391,7 +406,7 @@ public class ScenarioRunner {
                 .queueCapacity(50)
                 .cpuMonitor(70, 40)  // Lower threshold to trigger easily
                 .memoryMonitor(60, 40)
-                .hysteresis(Duration.ofSeconds(2))// Shorter hysteresis for faster testing
+                .hysteresis(Duration.ofSeconds(1))// Shorter hysteresis for faster testing
                     .hotMonitoringDebounceInterval(Duration.ofSeconds(2)) // Shorter debounce to allow multiple pauses
                     .coldMonitoringInterval(Duration.ofSeconds(2)) // More frequent checks while paused
                 .maxPauseCount(2)  // Kill after exceeding 2 pauses (i.e., on 3rd pause)
@@ -470,6 +485,7 @@ public class ScenarioRunner {
             List<ChunkableTask<?>> killedTasks = finalExecutor.getKilledTasks();
 
             result.setDuration(duration);
+            result.setTasksSubmitted(5);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -592,6 +608,7 @@ public class ScenarioRunner {
             boolean priorityWorked = highCompleted == 5 && metrics.getTasksCompleted() >= 10;
 
             result.setDuration(duration);
+            result.setTasksSubmitted(15);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setSuccess(priorityWorked);
 
@@ -661,6 +678,7 @@ public class ScenarioRunner {
 
             ExecutorMetrics metrics = executor.getMetrics();
             result.setDuration(duration);
+            result.setTasksSubmitted(100);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -749,6 +767,7 @@ public class ScenarioRunner {
             ExecutorMetrics metrics = executor.getMetrics();
 
             result.setDuration(duration);
+            result.setTasksSubmitted(12);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -842,6 +861,7 @@ public class ScenarioRunner {
             ExecutorMetrics metrics = executor.getMetrics();
 
             result.setDuration(0);
+            result.setTasksSubmitted(11);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -934,6 +954,7 @@ public class ScenarioRunner {
 
             ExecutorMetrics metrics = executor.getMetrics();
 
+            result.setTasksSubmitted(20);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -1053,6 +1074,7 @@ public class ScenarioRunner {
             }
 
             ExecutorMetrics metrics = executor.getMetrics();
+            result.setTasksSubmitted(8);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -1130,6 +1152,7 @@ public class ScenarioRunner {
             boolean shutdownClean = terminated && executor.isShutdown();
 
             ExecutorMetrics metrics = executor.getMetrics();
+            result.setTasksSubmitted(15);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());
@@ -1209,6 +1232,7 @@ public class ScenarioRunner {
             long callbacksFired = wrappers.stream().filter(DelegatingSimulatedTask::isCompleted).count();
 
             result.setDuration(duration);
+            result.setTasksSubmitted(taskCount);
             result.setTasksCompleted(metrics.getTasksCompleted());
             result.setTasksFailed(metrics.getTasksFailed());
             result.setTasksKilled(metrics.getTasksKilled());

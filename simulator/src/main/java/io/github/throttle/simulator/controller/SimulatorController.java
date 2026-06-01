@@ -211,6 +211,7 @@ public class SimulatorController {
             Map<String, Object> resp = new HashMap<>();
             resp.put("success", res.isSuccess());
             resp.put("duration", res.getDuration());
+            resp.put("tasksSubmitted", res.getTasksSubmitted());
             resp.put("tasksCompleted", res.getTasksCompleted());
             resp.put("tasksFailed", res.getTasksFailed());
             resp.put("tasksKilled", res.getTasksKilled());
