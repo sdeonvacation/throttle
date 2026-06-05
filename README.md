@@ -9,6 +9,21 @@
   <a href="https://javadoc.io/doc/io.github.sdeonvacation/throttle"><img src="https://javadoc.io/badge2/io.github.sdeonvacation/throttle/javadoc.svg" alt="Javadoc"></a>
 </p>
 
+## Try the Simulator
+
+Want to see Throttle in action? The simulator lets you watch real-time pause/resume behavior:
+
+```bash
+git clone https://github.com/sdeonvacation/throttle.git
+cd throttle/simulator
+mvn spring-boot:run
+# Open http://localhost:8080/api/simulator/dashboard
+```
+
+<p align="center">
+  <img src="docs/images/throttle-demo.gif" alt="Throttle Simulator Demo" width="700">
+</p>
+
 <p align="center">
   <a href="#the-problem">The Problem</a> •
   <a href="#the-fix">The Fix</a> •
@@ -387,21 +402,6 @@ Two mechanisms handle this:
 
 2. **Task termination** (optional) — If `taskTerminationEnabled(true)` is set, tasks that pause more than `maxPauseCount` times (default 5) are killed with `TaskTerminatedException`. Disabled by default.
 </details>
-
-## Try the Simulator
-
-Want to see Throttle in action? The simulator lets you watch real-time pause/resume behavior:
-
-```bash
-git clone https://github.com/sdeonvacation/throttle.git
-cd throttle/simulator
-mvn spring-boot:run
-# Open http://localhost:8080/api/simulator/dashboard
-```
-
-<p align="center">
-  <img src="docs/images/throttle-demo.gif" alt="Throttle Simulator Demo" width="700">
-</p>
 
 ## Full Documentation
 
